@@ -69,7 +69,12 @@ const BookView = () => {
     })
 
     useEffect(() => {
-        const book = state[s.BOOK]
+        doPost('rpc/getBook', {name:'zorich-book-1'}, resp => {
+            loadBook(resp)
+        })
+    }, [])
+
+    function loadBook(book) {
         let y = 0
         for (let page of book.pages) {
             page.y1 = y
@@ -77,9 +82,12 @@ const BookView = () => {
             page.y2 = y
         }
         book.maxY = y
-        setState(state.set(s.VIEW_MAX_Y, book.maxY-state[s.VIEW_HEIGHT]))
+        setState(prev => state
+            .set(s.VIEW_MAX_Y, book.maxY-state[s.VIEW_HEIGHT])
+            .set(s.BOOK, book)
+        )
         setReady(true)
-    }, [])
+    }
 
     function createState({prevState, params}) {
         const getParam = createParamsGetter({prevState, params})

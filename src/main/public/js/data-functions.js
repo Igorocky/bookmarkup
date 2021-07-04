@@ -1,5 +1,15 @@
 'use strict';
 
+function doPost(url, data, onSuccess) {
+    $.ajax({
+        type: "POST",
+        url: url,
+        data: JSON.stringify(data),
+        contentType: "application/json; charset=utf-8",
+        success: onSuccess
+    });
+}
+
 function hasValue(variable) {
     return variable !== undefined && variable !== null
 }
