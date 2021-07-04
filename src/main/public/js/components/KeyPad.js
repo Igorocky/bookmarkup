@@ -1,6 +1,6 @@
 "use strict";
 
-const KeyPad = ({componentKey, keys, size, variant, buttonWidth}) => {
+const KeyPad = ({componentKey, keys, size, variant, buttonWidth, onKeyUp}) => {
     function getKeyContent(key) {
         if (hasValue(key.symbol)) {
             return key.symbol
@@ -12,7 +12,7 @@ const KeyPad = ({componentKey, keys, size, variant, buttonWidth}) => {
     }
 
     return RE.Container.col.top.left({key:componentKey}, {style: {marginBottom:"1px"}},
-        keys.map((row,ri) => RE.ButtonGroup({key:ri, variant:variant?variant:"contained", size:size?size:"large"},
+        keys.map((row,ri) => RE.ButtonGroup({key:ri, variant:variant?variant:"contained", size:size?size:"large", onKeyUp: ({nativeEvent}) => onKeyUp?.(nativeEvent)},
             row.map((key,ki) => RE.Button({
                     key:ki,
                     style:{width:buttonWidth?buttonWidth:"1em", ...(key.style?key.style:{})},

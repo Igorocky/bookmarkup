@@ -262,11 +262,16 @@ const BookView = () => {
     }
 
     function renderControlButtons() {
-
         const viewHeight = state[s.VIEW_HEIGHT]
-        const scrollSpeed = state[s.SCROLL_SPEED] == ss.SPEED_1 ? viewHeight*0.05
-                : state[s.SCROLL_SPEED] == ss.SPEED_2 ? viewHeight*0.5
-                : viewHeight*0.95
+
+        function getScrollSpeedDy(scrollSpeedAlias) {
+            return scrollSpeedAlias == ss.SPEED_1 ? viewHeight * 0.05
+                : scrollSpeedAlias == ss.SPEED_2 ? viewHeight * 0.5
+                    : viewHeight * 0.95
+        }
+
+
+        const scrollSpeed = getScrollSpeedDy(state[s.SCROLL_SPEED])
 
 
         function getSpeedButtonColor(speed) {
@@ -287,6 +292,21 @@ const BookView = () => {
             componentKey: "book-controlButtons",
             keys: buttons,
             variant: "outlined",
+            onKeyUp: ({keyCode,shiftKey}) => {
+                if (keyCode === UP_ARROW_KEY_CODE) {
+                    scroll({dy:-1*getScrollSpeedDy(ss.SPEED_1)})
+                } else if (keyCode === DOWN_ARROW_KEY_CODE) {
+                    scroll({dy:getScrollSpeedDy(ss.SPEED_1)})
+                } else if (keyCode === PAGE_UP_KEY_CODE) {
+                    scroll({dy:-1*getScrollSpeedDy(ss.SPEED_3)})
+                } else if (keyCode === PAGE_DOWN_KEY_CODE) {
+                    scroll({dy:getScrollSpeedDy(ss.SPEED_3)})
+                } else if (keyCode === SPACE_KEY_CODE && shiftKey) {
+                    scroll({dy:-1*getScrollSpeedDy(ss.SPEED_2)})
+                } else if (keyCode === SPACE_KEY_CODE && !shiftKey) {
+                    scroll({dy:getScrollSpeedDy(ss.SPEED_2)})
+                }
+            }
         })
     }
 

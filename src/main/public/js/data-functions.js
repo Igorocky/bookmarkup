@@ -1,5 +1,11 @@
 'use strict';
 
+const DOWN_ARROW_KEY_CODE = 40
+const UP_ARROW_KEY_CODE = 38
+const SPACE_KEY_CODE = 32
+const PAGE_DOWN_KEY_CODE = 34
+const PAGE_UP_KEY_CODE = 33
+
 function doPost(url, data, onSuccess) {
     $.ajax({
         type: "POST",
