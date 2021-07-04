@@ -9,7 +9,6 @@ app.get('/', (req, res) => {
     res.send('The sedulous hyena ate the antelope!');
 })
 app.post('/rpc/:methodName', async (req,res) => {
-    // @ts-ignore
     let resp = await rpcMethods[req.params.methodName](req.body)
     res.send(resp)
 })
