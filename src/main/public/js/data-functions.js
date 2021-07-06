@@ -6,14 +6,21 @@ const SPACE_KEY_CODE = 32
 const PAGE_DOWN_KEY_CODE = 34
 const PAGE_UP_KEY_CODE = 33
 
-function doPost(url, data, onSuccess) {
+function doPost(url, data, onSuccess, onError) {
     $.ajax({
         type: "POST",
         url: url,
         data: JSON.stringify(data),
         contentType: "application/json; charset=utf-8",
-        success: onSuccess
+        success: onSuccess,
+        error: onError
     });
+}
+
+function beCall(methodName, params) {
+    return new Promise((resolve, reject) => {
+        doPost(`rpc/${methodName}`, params, resolve, reject)
+    })
 }
 
 function hasValue(variable) {

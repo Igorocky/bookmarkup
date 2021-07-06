@@ -72,6 +72,10 @@ const BookView = () => {
         doPost('rpc/getBook', {name:'zorich-book-1'}, resp => {
             loadBook(resp)
         })
+
+        beCall('saveSelections', {selections: null})
+            .then(resp => console.log({resp}))
+            .catch(err => console.log({err}))
     }, [])
 
     function loadBook(book) {
