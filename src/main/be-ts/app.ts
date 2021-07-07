@@ -25,7 +25,7 @@ loadAppConfig(argsParser(process.argv).config).then(() => {
     app.get('/book/:bookId/page/:fileName', (req, res) => {
         const bookId = req.params.bookId
         const fileName = req.params.fileName
-        res.sendFile(path.resolve(appConfig.markupsById[bookId].imgDir + '/' + fileName))
+        res.sendFile(path.resolve(appConfig.markupsById[bookId].imgDir, fileName))
     })
 
     app.use(express.static('src/main/public'))
