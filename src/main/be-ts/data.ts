@@ -10,7 +10,6 @@ const exec = util.promisify(childProcess.exec)
 
 async function getBook({bookId}: { bookId: string }): Promise<any> {
     const markup = appConfig.markups.find(m=>m.id===bookId)
-    console.log({markup})
     if (!markup) {
         throw new Error(`Could not find a book with id ${bookId}`)
     }

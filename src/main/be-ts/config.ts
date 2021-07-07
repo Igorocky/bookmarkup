@@ -17,8 +17,10 @@ interface BookMarkupConfig {
 
 interface AppConfig {
     markups: BookMarkupConfig[]
+    markupsById: Record<string, BookMarkupConfig>
 }
 
 async function loadAppConfig(configFilePath): Promise<void> {
     appConfig = JSON.parse(await readFile(configFilePath, 'UTF-8'))
+    appConfig.markupsById = appConfig.markups.reduce((prev,curr)=>({...prev,[curr.id]:curr}), {})
 }

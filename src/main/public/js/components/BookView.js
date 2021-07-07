@@ -32,7 +32,6 @@ const BookView = ({openView}) => {
 
     const query = useQuery()
     const bookId = query.get('bookId')
-    console.log({bookId})
 
     const [state, setState] = useState(() => createState({}))
     const [ready, setReady] = useState(false)
@@ -180,6 +179,10 @@ const BookView = ({openView}) => {
         return book.pages.filter(p => rangesIntersect({r1:{y1:p.y1,y2:p.y2}, r2:{y1:minY,y2:maxY}}))
     }
 
+    function getPageImageUrl({page}) {
+        return `/book/${bookId}/page/${page.fileName}`
+    }
+
     function renderViewableContent({
                                        key = 'page',
                                        book = state[s.BOOK],
@@ -202,7 +205,7 @@ const BookView = ({openView}) => {
 
         for (let page of pagesToRender) {
             svgContent.push(renderImage({
-                imgPath: `${book.basePath}/${page.fileName}`,
+                imgPath: getPageImageUrl({page}),
                 key: `${key}-img-${page.y1}`,
                 x: 0,
                 y: page.y1,

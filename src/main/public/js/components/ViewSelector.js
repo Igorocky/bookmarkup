@@ -18,7 +18,7 @@ function getViewAbsoluteUrl(relUrl) {
 }
 
 const ViewSelector = ({}) => {
-    const [currentViewUrl, setCurrentViewUrl] = useState(VIEW_URLS.bookSelector)
+    const [currentViewUrl, setCurrentViewUrl] = useState(null)
 
     function getViewRoutes() {
         return VIEWS.map(view => re(Route, {

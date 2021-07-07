@@ -10,10 +10,6 @@ loadAppConfig(argsParser(process.argv).config).then(() => {
     app.use(express.json())
 
     app.post('/rpc/:methodName', (req,res) => {
-        console.log({
-            methodName: req.params.methodName,
-            body: req.body
-        })
         const methodName = req.params.methodName
         const dataOrPromise = rpcMethods[methodName](req.body)
         if (typeof dataOrPromise.then === 'function') {
@@ -26,14 +22,13 @@ loadAppConfig(argsParser(process.argv).config).then(() => {
 
     })
 
-    app.use(express.static('src/main/public'))
-
-    app.get('/book/:bookId/page/:pageNum', (req, res) => {
+    app.get('/book/:bookId/page/:fileName', (req, res) => {
         const bookId = req.params.bookId
-        const pageNum = req.params.pageNum
-        appConfig.markups.find(m=>m.id===bookId)?.
-        res.sendFile(path.resolve(`${__dirname}/../src/main/public/bookmarkup-index.html`))
+        const fileName = req.params.fileName
+        res.sendFile(path.resolve(appConfig.markupsById[bookId].imgDir + '/' + fileName))
     })
+
+    app.use(express.static('src/main/public'))
 
     app.get(/^\/(.*)/, (req, res) => {
         res.sendFile(path.resolve(`${__dirname}/../src/main/public/bookmarkup-index.html`))
