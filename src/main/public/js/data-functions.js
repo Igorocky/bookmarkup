@@ -19,13 +19,15 @@ function doPost(url, data, onSuccess, onError) {
 
 function callBe(methodName, params) {
     return new Promise((resolve, reject) => {
-        doPost(`rpc/${methodName}`, params, resolve, reject)
+        doPost(`/rpc/${methodName}`, params, resolve, reject)
     })
 }
 
 const be = {
     getBook: (bookId) => callBe('getBook',{bookId}),
+    getSelections: (bookId) => callBe('getSelections',{bookId}),
     listAvailableBooks: () => callBe('listAvailableBooks',{}),
+    saveSelections: ({bookId,selections}) => callBe('saveSelections',{bookId,selections}),
 }
 
 function hasValue(variable) {

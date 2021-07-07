@@ -1,9 +1,10 @@
-import {getBook, saveSelections, listAvailableBooks} from './data'
+import {getBook, saveSelections, listAvailableBooks, getSelections} from './data'
 
 const rpcMethods = {
     getBook,
     saveSelections,
-    listAvailableBooks
+    listAvailableBooks,
+    getSelections,
 }
 
 export {rpcMethods}

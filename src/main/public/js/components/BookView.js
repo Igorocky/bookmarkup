@@ -15,6 +15,7 @@ const BookView = ({openView}) => {
         FOCUSED_SELECTION_ID: 'FOCUSED_SELECTION_ID',
         EDIT_MODE: 'EDIT_MODE',
         EDITED_SELECTION_PROPS: 'EDITED_SELECTION_PROPS',
+        MODAL_ACTIVE: 'MODAL_ACTIVE',
     }
 
     //scroll speed
@@ -50,13 +51,10 @@ const BookView = ({openView}) => {
         setSelections: setSelectionsForImageSelector
     } = useImageSelector({
         onCancel: () => setState(prev=>prev.set(s.EDIT_MODE,null)),
-        onSave: newParts => setState(prev=>{
-            const newState = objectHolder(prev)
-            const focusedId = prev[s.FOCUSED_SELECTION_ID]
-            const idxToModify = prev[s.SELECTIONS].map((s,idx) => ({id: s.id, idx})).find(s => s.id == focusedId).idx
+        onSave: newParts => {
             const newSelections = sortBy(
-                prev[s.SELECTIONS].modifyAtIdx(
-                    idxToModify,
+                state[s.SELECTIONS].modifyAtIdx(
+                    state.getIndexOfFocusedSelection(),
                     s => ({
                         ...s,
                         parts:newParts,
@@ -65,17 +63,24 @@ const BookView = ({openView}) => {
                 ),
                 e => (e.overallBoundaries?.minY) ?? -1
             )
-            newState.set(s.SELECTIONS, newSelections)
-            newState.set(s.EDIT_MODE, null)
-            return newState.get()
-        })
+            saveSelections({
+                newSelections,
+                onDone: () => setState(prev => prev
+                    .set(s.SELECTIONS, newSelections)
+                    .set(s.EDIT_MODE, null)
+                )
+            })
+        }
     })
 
     useEffect(() => {
-        be.getBook(bookId).then(book => loadBook(book))
+        Promise.all([
+            be.getBook(bookId),
+            be.getSelections(bookId)
+        ]).then(loadBook)
     }, [])
 
-    function loadBook(book) {
+    function loadBook([book, selections]) {
         let y = 0
         for (let page of book.pages) {
             page.y1 = y
@@ -83,9 +88,17 @@ const BookView = ({openView}) => {
             page.y2 = y
         }
         book.maxY = y
+
+        selections = selections.map(s => ({
+            ...s,
+            parts: s.parts.map(p => new SvgBoundaries(p)),
+            overallBoundaries: s.overallBoundaries?new SvgBoundaries(s.overallBoundaries):undefined
+        }))
+
         setState(prev => state
             .set(s.VIEW_MAX_Y, book.maxY-state[s.VIEW_HEIGHT])
             .set(s.BOOK, book)
+            .set(s.SELECTIONS, selections)
         )
         setReady(true)
     }
@@ -94,33 +107,13 @@ const BookView = ({openView}) => {
         const getParam = createParamsGetter({prevState, params})
 
         return createObj({
-            [s.BOOK]: null,
+            [s.BOOK]: getParam(s.BOOK, null),
             [s.VIEW_CURR_Y]: getParam(s.VIEW_CURR_Y, 0),
             [s.VIEW_HEIGHT]: getParam(s.VIEW_HEIGHT, 1300),
             [s.PAGE_HEIGHT_PX]: getParam(s.PAGE_HEIGHT_PX, 800),
             [s.SCROLL_SPEED]: getParam(s.SCROLL_SPEED, ss.SPEED_1),
             [s.FOCUSED_SELECTION_ID]: getParam(s.FOCUSED_SELECTION_ID, 1),
-            [s.SELECTIONS]: getParam(
-                s.SELECTIONS,
-                [
-                    {"id": 3, "title": "selection 3", "parts": [], "overallBoundaries": null},
-                    {
-                        "id": 1,
-                        "title": "selection 1",
-                        "parts": [new SvgBoundaries({"minX": 732.875, "maxX": 1394.25, "minY": 502.125, "maxY": 640.25})],
-                        "overallBoundaries": new SvgBoundaries({"minX": 732.875, "maxX": 1394.25, "minY": 502.125, "maxY": 640.25})
-                    },
-                    {
-                        "id": 2,
-                        "title": "selection 2",
-                        "parts": [
-                            new SvgBoundaries({"minX": 277.875, "maxX": 1386.125, "minY": 858, "maxY": 1067.625}),
-                            new SvgBoundaries({"minX": 635.375, "maxX": 1385.5, "minY": 1051.375, "maxY": 1280.625})
-                        ],
-                        "overallBoundaries": new SvgBoundaries({"minX": 277.875, "maxX": 1386.125, "minY": 858, "maxY": 1280.625})
-                    }
-                ]
-            ),
+            [s.SELECTIONS]: getParam(s.SELECTIONS, null),
             getFocusedSelection() {
                 const focusedId = this[s.FOCUSED_SELECTION_ID]
                 return this[s.SELECTIONS].find(s=>s.id==focusedId)
@@ -134,6 +127,17 @@ const BookView = ({openView}) => {
                     }
                 }
             }
+        })
+    }
+
+    function saveSelections({newSelections, onDone}) {
+        setState(prev=>prev.set(s.MODAL_ACTIVE, true))
+        be.saveSelections({bookId,selections:JSON.stringify(newSelections, null, 4)}).then(({status,msg}) => {
+            if (status !== 'ok') {
+                alert(`Error saving selections: ${msg}`)
+            }
+            setState(prev=>prev.set(s.MODAL_ACTIVE, false))
+            onDone()
         })
     }
 
@@ -452,19 +456,18 @@ const BookView = ({openView}) => {
 
     function renderSelectionParamsDialog() {
         function saveProps() {
-            setState(prev => {
-                    const newProps = {
-                        title: prev[s.EDITED_SELECTION_PROPS].title,
-                        isMarkup: prev[s.EDITED_SELECTION_PROPS].isMarkup,
-                    }
-                    return prev
-                        .set(
-                            s.SELECTIONS,
-                            prev[s.SELECTIONS].modifyAtIdx(prev[s.EDITED_SELECTION_PROPS].idx, e => ({...e, ...newProps}))
-                        )
-                        .set(s.EDIT_MODE, null)
-                }
-            )
+            const newProps = {
+                title: state[s.EDITED_SELECTION_PROPS].title,
+                isMarkup: state[s.EDITED_SELECTION_PROPS].isMarkup,
+            }
+            const newSelections = state[s.SELECTIONS].modifyAtIdx(state[s.EDITED_SELECTION_PROPS].idx, e => ({...e, ...newProps}))
+            saveSelections({
+                newSelections,
+                onDone: () => setState(prev => prev
+                    .set(s.SELECTIONS, newSelections)
+                    .set(s.EDIT_MODE, null)
+                )
+            })
         }
 
         if (state[s.EDIT_MODE] === em.EDIT_PROPS) {
