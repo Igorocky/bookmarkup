@@ -1,6 +1,6 @@
 "use strict";
 
-const BookView = () => {
+const BookView = ({openView}) => {
     const {renderSelectedArea} = SelectedAreaRenderer()
 
     //state props
@@ -29,6 +29,10 @@ const BookView = () => {
         EDIT_PROPS: 'EDIT_PROPS',
         MODIFY_BOUNDARIES: 'MODIFY_BOUNDARIES',
     }
+
+    const query = useQuery()
+    const bookId = query.get('bookId')
+    console.log({bookId})
 
     const [state, setState] = useState(() => createState({}))
     const [ready, setReady] = useState(false)
@@ -69,13 +73,7 @@ const BookView = () => {
     })
 
     useEffect(() => {
-        doPost('rpc/getBook', {name:'zorich-book-1'}, resp => {
-            loadBook(resp)
-        })
-
-        beCall('saveSelections', {selections: null})
-            .then(resp => console.log({resp}))
-            .catch(err => console.log({err}))
+        be.getBook(bookId).then(book => loadBook(book))
     }, [])
 
     function loadBook(book) {
@@ -97,7 +95,7 @@ const BookView = () => {
         const getParam = createParamsGetter({prevState, params})
 
         return createObj({
-            [s.BOOK]: BOOK1,
+            [s.BOOK]: null,
             [s.VIEW_CURR_Y]: getParam(s.VIEW_CURR_Y, 0),
             [s.VIEW_HEIGHT]: getParam(s.VIEW_HEIGHT, 1300),
             [s.PAGE_HEIGHT_PX]: getParam(s.PAGE_HEIGHT_PX, 800),

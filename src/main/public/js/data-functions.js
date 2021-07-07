@@ -17,10 +17,15 @@ function doPost(url, data, onSuccess, onError) {
     });
 }
 
-function beCall(methodName, params) {
+function callBe(methodName, params) {
     return new Promise((resolve, reject) => {
         doPost(`rpc/${methodName}`, params, resolve, reject)
     })
+}
+
+const be = {
+    getBook: (bookId) => callBe('getBook',{bookId}),
+    listAvailableBooks: () => callBe('listAvailableBooks',{}),
 }
 
 function hasValue(variable) {

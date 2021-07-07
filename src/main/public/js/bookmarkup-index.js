@@ -1,6 +1,6 @@
 'use strict';
 
 ReactDOM.render(
-    re(ExerciseSelector),
+    re(ViewSelector),
     document.getElementById('react-container')
 )
