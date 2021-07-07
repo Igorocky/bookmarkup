@@ -2,6 +2,7 @@ import fs from 'fs'
 import util from 'util'
 import childProcess from 'child_process'
 import {appConfig} from './config'
+import path from "path"
 
 export {getBook, saveSelections, listAvailableBooks, getSelections}
 
@@ -31,10 +32,11 @@ async function saveSelections({bookId, selections}:{bookId:string, selections:st
     const selectionsFilePath = appConfig.markupsById[bookId].selectionsFile
     if (selectionsFilePath) {
         try {
-            await writeFile(selectionsFilePath, selections, 'UTF-8')
+            await saveAndCommit({filePath:selectionsFilePath,data:selections})
             return {status:'ok'}
         } catch (err) {
-            return {status:'error', msg: JSON.stringify(err)}
+            console.log({err})
+            return {status:'error', msg: err.message}
         }
     } else {
         return {status:'error', msg: 'selectionsFilePath not found'}
@@ -43,4 +45,62 @@ async function saveSelections({bookId, selections}:{bookId:string, selections:st
 
 function listAvailableBooks() {
     return appConfig.markups.map(({id, title}) => ({id, title}))
+}
+
+async function saveAndCommit({filePath, data}:{filePath:string, data:string}) {
+    const workingDir = path.dirname(filePath)
+    const fileName = path.basename(filePath)
+    function execCmd({cmd,msg,matcher,regex}:{cmd:string,msg:string,matcher?:(s:string)=>boolean,regex?:RegExp}) {
+        return execAndAssert({dir:workingDir,cmd,msg,matcher,regex})
+    }
+
+    await execCmd({
+        cmd:'git status',
+        msg:'Working dir should be clean before saving the file.',
+        regex: /.*nothing to commit.*working tree clean.*/
+    })
+
+    await writeFile(filePath, data, 'UTF-8')
+
+    await execCmd({
+        cmd:`git add ${fileName}`,
+        msg:'',
+        matcher: () => true
+    })
+
+    await execCmd({
+        cmd:'git status',
+        msg:'Only one file should be modified and staged for commit.',
+        regex: new RegExp(`^\\s*On branch master\\s+Changes to be committed:\\s+\\(use "git restore --staged <file>\\.\\.\\." to unstage\\)\\s+modified:\\s+${fileName}\\s*$`)
+    })
+
+    await execCmd({
+        cmd:`git commit -m "Saving from the BE: ${fileName}"`,
+        msg:'',
+        matcher: () => true
+    })
+
+    await execCmd({
+        cmd:'git status',
+        msg:'Working dir should be clean after saving the file.',
+        regex: /.*nothing to commit.*working tree clean.*/
+    })
+}
+
+function assertStdoutMatches({execRes:{stdout,stderr},msg,matcher}) {
+    if (!matcher(stdout)) {
+        throw new Error(`Assertion error: ${msg}; non-expected stdout:\n-----${stdout}-----\n\nstderr:\n-----${stderr}-----`)
+    }
+    return stdout
+}
+
+async function execAndAssert({dir,cmd,msg,matcher,regex}:{dir:string,cmd:string,msg:string,matcher?:(s:string)=>boolean,regex?:RegExp}) {
+    if (!matcher && !regex) {
+        throw new Error('Either matcher or regex should be defined')
+    }
+    return assertStdoutMatches({
+        execRes: await exec(`cd ${dir} && ${cmd}`),
+        msg,
+        matcher: matcher??(out => regex?.test(out))
+    })
 }

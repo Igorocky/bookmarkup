@@ -135,9 +135,10 @@ const BookView = ({openView}) => {
         be.saveSelections({bookId,selections:JSON.stringify(newSelections, null, 4)}).then(({status,msg}) => {
             if (status !== 'ok') {
                 alert(`Error saving selections: ${msg}`)
+            } else {
+                setState(prev=>prev.set(s.MODAL_ACTIVE, false))
+                onDone()
             }
-            setState(prev=>prev.set(s.MODAL_ACTIVE, false))
-            onDone()
         })
     }
 
