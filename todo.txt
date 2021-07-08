@@ -1,7 +1,6 @@
+* hash code for all images
 * save selections after delete
-
 * no errors when there are no selections at all
-
 * tree view
-
 * highlight markup selection in the tree
+* autoscroll in the tree view to selected selection
