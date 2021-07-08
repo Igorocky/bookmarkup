@@ -1,3 +1,2 @@
 * tree view
-* highlight markup selection in the tree
 * autoscroll in the tree view to selected selection

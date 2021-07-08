@@ -1,5 +1,7 @@
 "use strict";
 
+const PARAGRAPH_SYMBOL = String.fromCharCode(167)
+
 const BookView = ({openView}) => {
     const {renderSelectedArea} = SelectedAreaRenderer()
 
@@ -423,7 +425,7 @@ const BookView = ({openView}) => {
                         }
                     }
                 },
-                `${!selection.parts?.length?'[empty] ':''}${selection.title}`
+                `${selection.isMarkup?PARAGRAPH_SYMBOL+' ':''}${(!selection.parts?.length)?'[empty] ':''}${selection.title}`
             ))
         )
     }
