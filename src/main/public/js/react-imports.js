@@ -29,7 +29,7 @@ const ALIGN_ITEMS = {flexStart: "flex-start", center: "center", flexEnd: "flex-e
 
 function gridFactory(direction, justify, alignItems) {
     return (props, childProps, ...children) => re(MaterialUI.Grid, {container:true, direction:direction,
-            justify:justify, alignItems:alignItems, ...props},
+            justifyContent:justify, alignItems:alignItems, ...props},
         React.Children.map(children, child => {
             return re(MaterialUI.Grid, {item:true, ...childProps}, child)
         })
