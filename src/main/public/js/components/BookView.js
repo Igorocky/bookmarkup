@@ -25,12 +25,6 @@ const BookView = ({openView}) => {
         SPEED_3: 'SPEED_3',
     }
 
-    //edit mode
-    const em = {
-        EDIT_PROPS: 'EDIT_PROPS',
-        MODIFY_BOUNDARIES: 'MODIFY_BOUNDARIES',
-    }
-
     const query = useQuery()
     const bookId = query.get('bookId')
 
@@ -48,17 +42,23 @@ const BookView = ({openView}) => {
         stateAttrs: imageSelectorStateAttrs,
         displayModes: imageSelectorDisplayModes,
         renderSettings,
-        setSelections: setSelectionsForImageSelector
+        setSelections: setSelectionsForImageSelector,
+        saveSelections: saveSelectionsForImageSelector,
     } = useImageSelector({
-        onCancel: () => setState(prev=>prev.set(s.EDIT_MODE,null)),
+        onCancel: () => setState(prev=>prev.set(s.EDIT_MODE,false)),
         onSave: newParts => {
+            const newProps = {
+                title: state[s.EDITED_SELECTION_PROPS].title,
+                isMarkup: state[s.EDITED_SELECTION_PROPS].isMarkup,
+            }
             const newSelections = sortBy(
                 state[s.SELECTIONS].modifyAtIdx(
                     state.getIndexOfFocusedSelection(),
                     s => ({
                         ...s,
                         parts:newParts,
-                        overallBoundaries: newParts.length?mergeSvgBoundaries(...newParts):null
+                        overallBoundaries: newParts.length?mergeSvgBoundaries(...newParts):null,
+                        ...newProps
                     })
                 ),
                 e => (e.overallBoundaries?.minY) ?? -1
@@ -67,7 +67,7 @@ const BookView = ({openView}) => {
                 newSelections,
                 onDone: () => setState(prev => prev
                     .set(s.SELECTIONS, newSelections)
-                    .set(s.EDIT_MODE, null)
+                    .set(s.EDIT_MODE, false)
                 )
             })
         }
@@ -227,7 +227,7 @@ const BookView = ({openView}) => {
             boundaries = boundaries.addPoints(new Point(page.width, minY))
         }
 
-        const selectionIdToHide = !singleSelectionMode && state[s.EDIT_MODE] === em.MODIFY_BOUNDARIES ? state[s.FOCUSED_SELECTION_ID] : null
+        const selectionIdToHide = !singleSelectionMode && state[s.EDIT_MODE] ? state[s.FOCUSED_SELECTION_ID] : null
         const selectionsToRender = singleSelectionMode ? selections : selections
             .filter(s => hasValue(s.overallBoundaries))
             .filter(s => s.id != selectionIdToHide)
@@ -245,7 +245,7 @@ const BookView = ({openView}) => {
             }).svgContent)
         }
 
-        if (!singleSelectionMode && state[s.EDIT_MODE] === em.MODIFY_BOUNDARIES) {
+        if (!singleSelectionMode && state[s.EDIT_MODE]) {
             svgContent.push(
                 renderEditedSelectedArea({
                     renderSelections: true,
@@ -382,37 +382,21 @@ const BookView = ({openView}) => {
         })
     }
 
-    function modifyBoundariesOfSelection() {
-        setState(prev=>prev.set(s.EDIT_MODE, em.MODIFY_BOUNDARIES))
-        const focusedSelectionId = state[s.FOCUSED_SELECTION_ID]
-        const parts = state[s.SELECTIONS].find(s=> s.id == focusedSelectionId).parts
+    function editSelection() {
+        const editedSelection = state.getFocusedSelection()
+        const parts = editedSelection.parts
         setSelectionsForImageSelector({selections: parts})
-        setState(prev=>prev.set(s.VIEW_CURR_Y, parts.length?parts.map(p=>p.minY).min():prev[s.VIEW_CURR_Y]))
-    }
-
-    function openSelectionPropsDialog() {
-        setState(prev => {
-            let editedSelection
-            let editedSelectionIdx
-            const selections = prev[s.SELECTIONS]
-            const focusedId = prev[s.FOCUSED_SELECTION_ID]
-            for (let i = 0; i < selections.length; i++) {
-                if (selections[i].id === focusedId) {
-                    editedSelection = selections[i]
-                    editedSelectionIdx = i
-                }
-            }
-            return prev
-                .set(s.EDIT_MODE, em.EDIT_PROPS)
-                .set(s.EDITED_SELECTION_PROPS, {idx: editedSelectionIdx, title: editedSelection.title, isMarkup: editedSelection.isMarkup})
-        })
+        setState(prev=>prev
+            .set(s.EDIT_MODE, true)
+            .set(s.VIEW_CURR_Y, parts.length?parts.map(p=>p.minY).min():prev[s.VIEW_CURR_Y])
+            .set(s.EDITED_SELECTION_PROPS, {title: editedSelection.title, isMarkup: editedSelection.isMarkup})
+        )
     }
 
     function renderSelectionsList() {
         const buttons = [[
             {iconName:"add", style:{}, onClick: addNewSelection},
-            {iconName:"picture_in_picture", style:{}, disabled: !state[s.SELECTIONS].length, onClick: modifyBoundariesOfSelection},
-            {iconName:"settings", style:{}, disabled: !state[s.SELECTIONS].length, onClick: openSelectionPropsDialog},
+            {iconName:"settings", style:{}, disabled: !state[s.SELECTIONS].length, onClick: editSelection},
             {iconName:"delete_forever", style:{}, disabled: !state[s.SELECTIONS].length, onClick: deleteSelection},
         ]]
 
@@ -431,7 +415,7 @@ const BookView = ({openView}) => {
                         cursor: 'pointer',
                     },
                     onClick: () => {
-                        if (hasNoValue(state[s.EDIT_MODE])) {
+                        if (!state[s.EDIT_MODE]) {
                             setState(prev => prev
                                 .set(s.FOCUSED_SELECTION_ID, selection.id)
                                 .set(s.VIEW_CURR_Y, Math.min(prev[s.VIEW_MAX_Y], selection.overallBoundaries?.minY??prev[s.VIEW_CURR_Y]))
@@ -445,7 +429,7 @@ const BookView = ({openView}) => {
     }
 
     function getCursorType() {
-        if (hasNoValue(state[s.EDIT_MODE])) {
+        if (!state[s.EDIT_MODE]) {
             return 'grab'
         } else {
             return getCursorTypeForImageSelector()
@@ -453,7 +437,7 @@ const BookView = ({openView}) => {
     }
 
     function clickHandler(clickImageX, clickImageY, nativeEvent) {
-        if (hasNoValue(state[s.EDIT_MODE])) {
+        if (!state[s.EDIT_MODE]) {
             if (nativeEvent.type === 'mouseup') {
                 const clickedPoint = new Point(clickImageX,clickImageY)
                 const clickedSelection = state[s.SELECTIONS].find(sel => sel.parts?.some(p => p.includesPoint(clickedPoint)))
@@ -466,77 +450,36 @@ const BookView = ({openView}) => {
         }
     }
 
-    function renderSelectionParamsDialog() {
-        function saveProps() {
-            const newProps = {
-                title: state[s.EDITED_SELECTION_PROPS].title,
-                isMarkup: state[s.EDITED_SELECTION_PROPS].isMarkup,
-            }
-            const newSelections = state[s.SELECTIONS].modifyAtIdx(state[s.EDITED_SELECTION_PROPS].idx, e => ({...e, ...newProps}))
-            saveSelections({
-                newSelections,
-                onDone: () => setState(prev => prev
-                    .set(s.SELECTIONS, newSelections)
-                    .set(s.EDIT_MODE, null)
-                )
-            })
-        }
+    function updateEditedSelectionProps({prop,value}) {
+        setState(prev => prev.set(
+            s.EDITED_SELECTION_PROPS,
+            {...prev[s.EDITED_SELECTION_PROPS], [prop]:value}
+        ))
+    }
 
-        if (state[s.EDIT_MODE] === em.EDIT_PROPS) {
-            const tdStyle = {padding:'10px'}
-            const inputElemsWidth = '800px'
-            return RE.Dialog({open:true, maxWidth:'xl'},
-                RE.DialogTitle({}, 'Selection properties'),
-                RE.DialogContent({dividers:true},
-                    RE.table({},
-                        RE.tbody({},
-                            RE.tr({},
-                                RE.td({style: tdStyle},
-                                    RE.TextField(
-                                        {
-                                            variant: 'outlined', label: 'Title',
-                                            style: {width: inputElemsWidth},
-                                            autoFocus: true,
-                                            onChange: event => {
-                                                const newTitle = event.nativeEvent.target.value
-                                                setState(prev => prev.set(
-                                                    s.EDITED_SELECTION_PROPS,
-                                                    {...prev[s.EDITED_SELECTION_PROPS], title:newTitle}
-                                                ))
-                                            },
-                                            onKeyUp: event => event.nativeEvent.keyCode == 13 ? saveProps() : null,
-                                            value: state[s.EDITED_SELECTION_PROPS].title
-                                        }
-                                    )
-                                )
-                            ),
-                            RE.tr({},
-                                RE.td({style: tdStyle},
-                                    RE.FormControlLabel({
-                                        control: RE.Checkbox({
-                                            checked: state[s.EDITED_SELECTION_PROPS].isMarkup?true:false,
-                                            onChange: (event,newValue) => {
-                                                setState(prev => prev.set(s.EDITED_SELECTION_PROPS, {...prev[s.EDITED_SELECTION_PROPS], isMarkup:newValue}))
-                                            }
-                                        }),
-                                        label:'markup'
-                                    })
-                                )
-                            ),
-                            RE.tr({},
-                                RE.td({style: tdStyle},
-                                    renderSingleSelection({selection:state.getFocusedSelection()})
-                                )
-                            ),
-                        )
-                    )
-                ),
-                RE.DialogActions({},
-                    RE.Button({color:'primary', onClick: () => setState(prev => prev.set(s.EDIT_MODE, null))}, 'Cancel'),
-                    RE.Button({variant: "contained", color: 'primary', onClick: saveProps}, 'Save'),
-                ),
-            )
-        }
+    function renderSelectionPropsControls() {
+        return RE.Container.row.left.center({},{},
+            RE.TextField(
+                {
+                    variant: 'outlined', label: 'Title',
+                    style: {width: '800px'},
+                    autoFocus: true,
+                    onChange: event => {
+                        const newTitle = event.nativeEvent.target.value
+                        updateEditedSelectionProps({prop:'title',value:newTitle})
+                    },
+                    onKeyUp: event => event.nativeEvent.keyCode == 13 ? saveSelectionsForImageSelector() : null,
+                    value: state[s.EDITED_SELECTION_PROPS].title
+                }
+            ),
+            RE.FormControlLabel({
+                control: RE.Checkbox({
+                    checked: state[s.EDITED_SELECTION_PROPS].isMarkup?true:false,
+                    onChange: (event,newValue) => updateEditedSelectionProps({prop: 'isMarkup', value: newValue})
+                }),
+                label:'markup'
+            })
+        )
     }
 
     function renderSingleSelection({selection}) {
@@ -573,9 +516,10 @@ const BookView = ({openView}) => {
         const width = height * (viewableContentBoundaries.width()/viewableContentBoundaries.height())
         return RE.Container.col.top.left({},{},
             renderPagination(),
-            state[s.EDIT_MODE]===em.MODIFY_BOUNDARIES
-                ? renderControlButtonsOfImageSelector()
-                :null,
+            state[s.EDIT_MODE] ? RE.Container.col.top.left({}, {},
+                renderSelectionPropsControls(),
+                renderControlButtonsOfImageSelector()
+            ) : null,
             RE.svg(
                 {
                     width,
@@ -616,7 +560,6 @@ const BookView = ({openView}) => {
                 )
             ),
             renderConfirmActionDialog(),
-            renderSelectionParamsDialog()
         )
     }
 }

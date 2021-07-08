@@ -228,7 +228,7 @@ function useImageSelector({onCancel, onSave}) {
             {symbol:"3x", style:{backgroundColor:getSpeedButtonColor(ms.SPEED_3)}, onClick: () => setState(state.set(s.MOVE_SPEED, ms.SPEED_3))},
             {iconName:"delete_forever", style:{color:'red'}, onClick: remove},
             {iconName:"cancel", onClick: () => onCancel?.()},
-            {iconName:"save", style:{color:'blue'}, onClick: () => onSave?.(state[s.SELECTED_BOUNDARIES])},
+            {iconName:"save", style:{color:'blue'}, onClick: saveSelections},
         ]]
 
         return re(KeyPad, {
@@ -236,6 +236,10 @@ function useImageSelector({onCancel, onSave}) {
             keys: buttons,
             variant: "outlined",
         })
+    }
+
+    function saveSelections() {
+        onSave?.(state[s.SELECTED_BOUNDARIES])
     }
 
     return {
@@ -268,7 +272,8 @@ function useImageSelector({onCancel, onSave}) {
                 .set(s.SELECTED_POINT, null)
                 .set(s.EDIT_MODE, em.ADD_SELECTION)
             )
-        }
+        },
+        saveSelections
     }
 }
 
