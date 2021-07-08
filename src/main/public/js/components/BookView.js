@@ -115,8 +115,7 @@ const BookView = ({openView}) => {
             [s.FOCUSED_SELECTION_ID]: getParam(s.FOCUSED_SELECTION_ID, 1),
             [s.SELECTIONS]: getParam(s.SELECTIONS, null),
             getFocusedSelection() {
-                const focusedId = this[s.FOCUSED_SELECTION_ID]
-                return this[s.SELECTIONS].find(s=>s.id==focusedId)
+                return this[s.SELECTIONS][this.getIndexOfFocusedSelection()]
             },
             getIndexOfFocusedSelection() {
                 const focusedId = this[s.FOCUSED_SELECTION_ID]
@@ -341,34 +340,46 @@ const BookView = ({openView}) => {
             onCancel: closeConfirmActionDialog,
             startActionBtnText: "Delete",
             startAction: ({updateInProgressText,onDone}) => {
-                setState(prev => {
-                    const newState = objectHolder(prev)
-                    const idx = prev.getIndexOfFocusedSelection()
-                    newState.set(s.SELECTIONS, prev[s.SELECTIONS].removeAtIdx(idx))
-                    if (idx >= newState.get(s.SELECTIONS).length) {
-                        newState.set(s.FOCUSED_SELECTION_ID, newState.get(s.SELECTIONS).last().id)
-                    } else {
-                        newState.set(s.FOCUSED_SELECTION_ID, newState.get(s.SELECTIONS)[idx].id)
+                const newSelections = state[s.SELECTIONS].removeAtIdx(state.getIndexOfFocusedSelection())
+                saveSelections({
+                    newSelections,
+                    onDone: () => {
+                        setState(prev => {
+                            const newState = objectHolder(prev)
+                            newState.set(s.SELECTIONS, newSelections)
+
+                            const idx = prev.getIndexOfFocusedSelection()
+                            if (idx >= newState.get(s.SELECTIONS).length) {
+                                newState.set(s.FOCUSED_SELECTION_ID, newState.get(s.SELECTIONS).last()?.id)
+                            } else {
+                                newState.set(s.FOCUSED_SELECTION_ID, newState.get(s.SELECTIONS)[idx].id)
+                            }
+                            return newState.get()
+                        })
+                        closeConfirmActionDialog()
                     }
-                    return newState.get()
                 })
-                closeConfirmActionDialog()
             },
         })
     }
 
     function addNewSelection() {
-        setState(prev => prev.set(
-            s.SELECTIONS,
-            [
-                {
-                    id: prev[s.SELECTIONS].map(e=>e.id).max()+1,
-                    title: 'New selection',
-                    parts: []
-                },
-                ...prev[s.SELECTIONS]
-            ]
-        ))
+        const newSelection = {
+            id: (state[s.SELECTIONS].map(e => e.id).max()??0) + 1,
+            title: 'New selection',
+            parts: []
+        }
+        const newSelections = [
+            newSelection,
+            ...state[s.SELECTIONS]
+        ]
+        saveSelections({
+            newSelections,
+            onDone: () => setState(prev => prev
+                .set(s.SELECTIONS, newSelections)
+                .set(s.FOCUSED_SELECTION_ID, newSelection.id)
+            )
+        })
     }
 
     function modifyBoundariesOfSelection() {
