@@ -545,6 +545,50 @@ const BookView = ({openView}) => {
         )
     }
 
+    function createTree({selections}) {
+        function getLevel(selection) {
+            if (selection.isMarkup) {
+                const split1 = selection.title?.split(' ')
+                if (split1 && split1.length) {
+                    return split1[0].split('.').length
+                } else {
+                    return 1
+                }
+            }
+        }
+        let roots = [{children:[]}]
+        for (let selection of selections) {
+            const level = Math.min(roots.length, getLevel(selection))
+            if (hasNoValue(level)) {
+                roots.last().children.push({node:selection,children:[]})
+            } else {
+                const newNode = {node:selection,children:[]}
+                roots[level-1].children.push(newNode)
+                roots = roots.slice(0,level)
+                roots.push(newNode)
+            }
+        }
+        return roots[0].children
+    }
+
+    function renderTree() {
+        function mapToTreeItems(nodes) {
+            return nodes.map(n => RE.TreeItem(
+                {nodeId:n.id,label:n.title},
+                mapToTreeItems(n.children)
+            ))
+        }
+        const tree = createTree({selections:state[s.SELECTIONS]})
+        return RE.TreeView({defaultCollapseIcon:'-',defaultExpandIcon:'+'},
+            mapToTreeItems(tree)
+        )
+    }
+
+    // if (state[s.SELECTIONS]) {
+    //     const tree = createTree({selections:state[s.SELECTIONS]})
+    //     console.log('tree', tree)
+    // }
+
     if (!ready) {
         return "Loading..."
     } else {

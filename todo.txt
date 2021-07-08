@@ -1,2 +1,3 @@
 * tree view
+* show env name in page title
 * autoscroll in the tree view to selected selection
