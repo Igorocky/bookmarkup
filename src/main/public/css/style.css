@@ -2,3 +2,8 @@
     background-color: blanchedalmond;
     cursor: pointer;
 }
+
+.navigate-to-page:hover {
+    color: red;
+    font-weight: bold;
+}

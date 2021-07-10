@@ -1,1 +1,2 @@
 * show env name in page title
+* scale and page view height

@@ -1,6 +1,7 @@
 "use strict";
 
 const PARAGRAPH_SYMBOL = String.fromCharCode(167)
+const NAVIGATE_TO_PAGE_SYMBOL = String.fromCharCode(8883)
 
 const BookView = ({openView}) => {
     const {renderSelectedArea} = SelectedAreaRenderer()
@@ -438,18 +439,21 @@ const BookView = ({openView}) => {
                         padding:'5px',
                         cursor: 'pointer',
                     },
-                    onClick: () => {
-                        if (!state[s.EDIT_MODE]) {
-                            setState(prev => prev
-                                .set(s.FOCUSED_SELECTION_ID, selection.id)
-                                .set(s.VIEW_CURR_Y, Math.min(prev[s.VIEW_MAX_Y], selection.overallBoundaries?.minY??prev[s.VIEW_CURR_Y]))
-                            )
-                        }
-                    }
+                    onClick: () => navigateToSelection({selection})
                 },
                 `${selection.isMarkup?PARAGRAPH_SYMBOL+' ':''}${(!selection.parts?.length)?'[empty] ':''}${selection.title}`
             ))
         )
+    }
+
+    function navigateToSelection({selection}) {
+        if (!state[s.EDIT_MODE]) {
+            setState(prev => prev
+                .set(s.FOCUSED_SELECTION_ID, selection.id)
+                .set(s.VIEW_CURR_Y, Math.min(prev[s.VIEW_MAX_Y], selection.overallBoundaries?.minY??prev[s.VIEW_CURR_Y]))
+                .set(s.VIEW_MODE, vm.BOOK)
+            )
+        }
     }
 
     function getCursorType() {
@@ -647,7 +651,20 @@ const BookView = ({openView}) => {
             renderViewModeSelector(),
             re(TreeView,{
                 tree: createTree({selections:state[s.SELECTIONS]}),
-                collapsedNodeRenderer: node => node.selection?.title,
+                collapsedNodeRenderer: node => RE.Container.row.left.center({},{},
+                    node.selection?.title,
+                    RE.span(
+                        {
+                            style: {marginLeft: '10px'},
+                            className: 'navigate-to-page',
+                            onClick: e => {
+                                e.stopPropagation()
+                                node.selection?navigateToSelection({selection: node.selection}):null
+                            }
+                        },
+                        NAVIGATE_TO_PAGE_SYMBOL
+                    )
+                ),
                 expandedNodeRenderer: node => (node.selection?.isMarkup??false) || !node.selection ? undefined : renderSingleSelection({selection:node.selection}),
                 showBullet: node => node.children.length,
                 isExpanded,
