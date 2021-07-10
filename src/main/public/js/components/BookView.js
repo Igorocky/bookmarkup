@@ -358,9 +358,10 @@ const BookView = ({openView}) => {
         const currY = state[s.VIEW_CURR_Y]
         const midY = currY + viewHeight/2
         return re(Pagination,{
+            pageNumShift:state[s.BOOK].pageNumShift,
             numOfPages: pages.length,
-            curPage:pages.map((p,i)=>({p,i})).find(({p,i}) => p.y1 <= midY && midY <= p.y2).i+1,
-            onChange: newPage => setState(state.set(s.VIEW_CURR_Y, pages[newPage-1].y1))
+            curIdx:pages.map((p,i)=>({p,i})).find(({p,i}) => p.y1 <= midY && midY <= p.y2).i,
+            onChange: newIdx => setState(state.set(s.VIEW_CURR_Y, pages[newIdx].y1))
         })
     }
 
@@ -674,10 +675,10 @@ const BookView = ({openView}) => {
                             className: 'navigate-to-page',
                             onClick: e => {
                                 e.stopPropagation()
-                                node.selection?navigateToSelection({selection: node.selection}):null
+                                (node.selection?.id)?navigateToSelection({selection: node.selection}):null
                             }
                         },
-                        NAVIGATE_TO_PAGE_SYMBOL
+                        (node.selection?.id)?NAVIGATE_TO_PAGE_SYMBOL:''
                     )
                 ),
                 expandedNodeRenderer: node => (node.selection?.isMarkup??false) || !node.selection ? undefined : renderSingleSelection({selection:node.selection}),

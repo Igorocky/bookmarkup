@@ -1,7 +1,7 @@
 "use strict";
 
-function Pagination({numOfPages,curPage,onChange}) {
-
+//curIdx + pageNumShift = currPageNum
+function Pagination({pageNumShift,numOfPages,curIdx,onChange}) {
     return RE.Container.row.left.center({},{style: {marginRight:'15px'}},
         RE.TextField(
             {
@@ -10,11 +10,11 @@ function Pagination({numOfPages,curPage,onChange}) {
                 size: 'small',
                 onKeyDown: ({nativeEvent:event}) => {
                     if (event.keyCode == 13) {
-                        const newPageStr = event.target.value?.replaceAll(/\D/g,'')
-                        if (newPageStr.length) {
-                            const newPage = Math.max(1, Math.min(numOfPages, parseInt(newPageStr)))
-                            if (newPage != curPage) {
-                                onChange(newPage)
+                        const newPageNumStr = event.target.value?.replaceAll(/\D/g,'')
+                        if (newPageNumStr.length) {
+                            const newIdx = Math.max(0, Math.min(numOfPages-1, parseInt(newPageNumStr)-pageNumShift))
+                            if (newIdx != curIdx) {
+                                onChange(newIdx)
                                 event.target.value = ''
                             }
                         }
@@ -23,31 +23,31 @@ function Pagination({numOfPages,curPage,onChange}) {
             }
         ),
         RE.ButtonGroup({variant:'contained', size:'small'},
-            RE.Button({onClick: () => onChange(1), disabled: curPage == 1},
+            RE.Button({onClick: () => onChange(0), disabled: curIdx === 0},
                 '<<'
             ),
-            RE.Button({onClick: () => onChange(curPage-1), disabled: curPage == 1},
+            RE.Button({onClick: () => onChange(curIdx-1), disabled: curIdx === 0},
                 '<'
             ),
-            RE.Button({onClick: () => onChange(curPage+1), disabled: curPage == numOfPages},
+            RE.Button({onClick: () => onChange(curIdx+1), disabled: curIdx === numOfPages-1},
                 '>'
             ),
-            RE.Button({onClick: () => onChange(numOfPages), disabled: curPage == numOfPages},
+            RE.Button({onClick: () => onChange(numOfPages-1), disabled: curIdx == numOfPages-1},
                 '>>'
             ),
-            ints(Math.max(1,curPage-3),Math.min(numOfPages,curPage+3)).map(p => RE.Button(
+            ints(Math.max(0,curIdx-3),Math.min(numOfPages-1,curIdx+3)).map(idx => RE.Button(
                 {
-                    key:`page-btn-${p}`,
-                    onClick: () => p==curPage?null:onChange(p)
+                    key:`page-btn-${idx}`,
+                    onClick: () => idx===curIdx?null:onChange(idx)
                 },
-                p==curPage?(`[${p}]`):p
+                idx===curIdx?(`[${idx+pageNumShift}]`):(idx+pageNumShift)
             )),
-            (curPage+3 < numOfPages)?[
+            (curIdx+3 < numOfPages-1)?[
                 RE.Button({key:`...-btn`,disabled: true},
                     '...'
                 ),
-                RE.Button({key:`last-page-btn`, onClick: () => onChange(numOfPages)},
-                    numOfPages
+                RE.Button({key:`last-page-btn`, onClick: () => onChange(numOfPages-1)},
+                    numOfPages-1+pageNumShift
                 )
             ]:null,
         )
