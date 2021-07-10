@@ -1,1 +1,2 @@
-* show navigation buttons vertically
+* show navigation buttons vertically.
+* add a search over the tree.
