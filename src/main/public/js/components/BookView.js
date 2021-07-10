@@ -2,6 +2,10 @@
 
 const PARAGRAPH_SYMBOL = String.fromCharCode(167)
 const NAVIGATE_TO_PAGE_SYMBOL = String.fromCharCode(8883)
+const VIEW_HEIGHT_MIN = 500
+const VIEW_HEIGHT_MAX = 3000
+const VIEW_HEIGHT_PX_MIN = 300
+const VIEW_HEIGHT_PX_MAX = 3000
 
 const BookView = ({openView}) => {
     const {renderSelectedArea} = SelectedAreaRenderer()
@@ -11,8 +15,6 @@ const BookView = ({openView}) => {
         BOOK: 'BOOK',
         VIEW_CURR_Y: 'VIEW_CURR_Y',
         VIEW_MAX_Y: 'VIEW_MAX_Y',
-        VIEW_HEIGHT: 'VIEW_HEIGHT',
-        PAGE_HEIGHT_PX: 'PAGE_HEIGHT_PX',
         SCROLL_SPEED: 'SCROLL_SPEED',
         SELECTIONS: 'SELECTIONS',
         FOCUSED_SELECTION_ID: 'FOCUSED_SELECTION_ID',
@@ -42,6 +44,18 @@ const BookView = ({openView}) => {
     const [state, setState] = useState(() => createState({}))
     const [ready, setReady] = useState(false)
     const [openConfirmActionDialog, closeConfirmActionDialog, renderConfirmActionDialog] = useConfirmActionDialog()
+    const [viewHeight, setViewHeight] = useStateFromLocalStorageNumber({
+        key: 'bookmarkup-view-height',
+        min: VIEW_HEIGHT_MIN,
+        max: VIEW_HEIGHT_MAX,
+        defaultValue: 1300
+    })
+    const [viewHeightPx, setViewHeightPx] = useStateFromLocalStorageNumber({
+        key: 'bookmarkup-view-height-px',
+        min: VIEW_HEIGHT_PX_MIN,
+        max: VIEW_HEIGHT_PX_MAX,
+        defaultValue: 800
+    })
     const {
         getCursorType:getCursorTypeForImageSelector,
         renderControlButtons: renderControlButtonsOfImageSelector,
@@ -107,9 +121,10 @@ const BookView = ({openView}) => {
         }))
 
         setState(prev => state
-            .set(s.VIEW_MAX_Y, book.maxY-state[s.VIEW_HEIGHT])
+            .set(s.VIEW_MAX_Y, book.maxY-viewHeight)
             .set(s.BOOK, book)
             .set(s.SELECTIONS, selections)
+            .set(s.FOCUSED_SELECTION_ID, selections[0]?.id??1)
         )
         setReady(true)
     }
@@ -120,10 +135,8 @@ const BookView = ({openView}) => {
         return createObj({
             [s.BOOK]: getParam(s.BOOK, null),
             [s.VIEW_CURR_Y]: getParam(s.VIEW_CURR_Y, 0),
-            [s.VIEW_HEIGHT]: getParam(s.VIEW_HEIGHT, 1300),
-            [s.PAGE_HEIGHT_PX]: getParam(s.PAGE_HEIGHT_PX, 800),
             [s.SCROLL_SPEED]: getParam(s.SCROLL_SPEED, ss.SPEED_1),
-            [s.FOCUSED_SELECTION_ID]: getParam(s.FOCUSED_SELECTION_ID, 1),
+            [s.FOCUSED_SELECTION_ID]: getParam(s.FOCUSED_SELECTION_ID, null),
             [s.SELECTIONS]: getParam(s.SELECTIONS, null),
             [s.VIEW_MODE]: getParam(s.VIEW_MODE, vm.BOOK),
             [s.EXPANDED_NODE_IDS]: getParam(s.EXPANDED_NODE_IDS, []),
@@ -211,7 +224,7 @@ const BookView = ({openView}) => {
                                        book = state[s.BOOK],
                                        selections = state[s.SELECTIONS],
                                        minY = state[s.VIEW_CURR_Y],
-                                       maxY = minY + state[s.VIEW_HEIGHT],
+                                       maxY = minY + viewHeight,
                                        singleSelectionMode = false,
                                    }) {
         function getClipPathIdForSelection(selection) {
@@ -290,8 +303,6 @@ const BookView = ({openView}) => {
     }
 
     function renderControlButtons() {
-        const viewHeight = state[s.VIEW_HEIGHT]
-
         function getScrollSpeedDy(scrollSpeedAlias) {
             return scrollSpeedAlias == ss.SPEED_1 ? viewHeight * 0.05
                 : scrollSpeedAlias == ss.SPEED_2 ? viewHeight * 0.5
@@ -314,6 +325,10 @@ const BookView = ({openView}) => {
             {symbol:"1x", style:{backgroundColor:getSpeedButtonColor(ss.SPEED_1)}, onClick: () => setState(state.set(s.SCROLL_SPEED, ss.SPEED_1))},
             {symbol:"2x", style:{backgroundColor:getSpeedButtonColor(ss.SPEED_2)}, onClick: () => setState(state.set(s.SCROLL_SPEED, ss.SPEED_2))},
             {symbol:"3x", style:{backgroundColor:getSpeedButtonColor(ss.SPEED_3)}, onClick: () => setState(state.set(s.SCROLL_SPEED, ss.SPEED_3))},
+            {iconName:"vertical_align_center", onClick: () => setViewHeightPx(Math.max(VIEW_HEIGHT_PX_MIN, viewHeightPx*0.95))},
+            {iconName:"height", onClick: () => setViewHeightPx(Math.min(VIEW_HEIGHT_PX_MAX, viewHeightPx*1.05))},
+            {iconName:"remove_circle_outline", onClick: () => setViewHeight(Math.min(VIEW_HEIGHT_MAX, viewHeight*1.05))},
+            {iconName:"add_circle_outline", onClick: () => setViewHeight(Math.max(VIEW_HEIGHT_MIN, viewHeight*0.95))},
         ]]
 
         return re(KeyPad, {
@@ -341,7 +356,7 @@ const BookView = ({openView}) => {
     function renderPagination() {
         const pages = state[s.BOOK].pages
         const currY = state[s.VIEW_CURR_Y]
-        const midY = currY + state[s.VIEW_HEIGHT]/2
+        const midY = currY + viewHeight/2
         return re(Pagination,{
             numOfPages: pages.length,
             curPage:pages.map((p,i)=>({p,i})).find(({p,i}) => p.y1 <= midY && midY <= p.y2).i+1,
@@ -527,7 +542,7 @@ const BookView = ({openView}) => {
             maxY: selectionBoundaries.maxY,
         })
 
-        const scaleFactor = state[s.PAGE_HEIGHT_PX]/state[s.VIEW_HEIGHT]
+        const scaleFactor = viewHeightPx/viewHeight
         const height = selectionBoundaries.height()*scaleFactor
         const width = selectionBoundaries.width()*scaleFactor
         return RE.svg(
@@ -554,7 +569,7 @@ const BookView = ({openView}) => {
     function renderPages() {
         const {svgContent:viewableContentSvgContent, boundaries:viewableContentBoundaries} = renderViewableContent({})
 
-        const height = state[s.PAGE_HEIGHT_PX]
+        const height = viewHeightPx
         const width = height * (viewableContentBoundaries.width()/viewableContentBoundaries.height())
         return RE.Container.col.top.left({},{},
             RE.Container.row.left.center({},{style:{marginRight:'20px'}},
