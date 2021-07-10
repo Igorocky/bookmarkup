@@ -19,6 +19,7 @@ const BookView = ({openView}) => {
         EDITED_SELECTION_PROPS: 'EDITED_SELECTION_PROPS',
         MODAL_ACTIVE: 'MODAL_ACTIVE',
         VIEW_MODE: 'VIEW_MODE',
+        EXPANDED_NODE_IDS: 'EXPANDED_NODE_IDS',
     }
 
     //scroll speed
@@ -124,6 +125,7 @@ const BookView = ({openView}) => {
             [s.FOCUSED_SELECTION_ID]: getParam(s.FOCUSED_SELECTION_ID, 1),
             [s.SELECTIONS]: getParam(s.SELECTIONS, null),
             [s.VIEW_MODE]: getParam(s.VIEW_MODE, vm.BOOK),
+            [s.EXPANDED_NODE_IDS]: getParam(s.EXPANDED_NODE_IDS, []),
             getFocusedSelection() {
                 return this[s.SELECTIONS][this.getIndexOfFocusedSelection()]
             },
@@ -628,14 +630,28 @@ const BookView = ({openView}) => {
         )
     }
 
+    function isExpanded(id) {
+        return state[s.EXPANDED_NODE_IDS].includes(id)
+    }
+
+    function expandCollapse(idToChange) {
+        if (isExpanded(idToChange)) {
+            setState(prev=>prev.set(s.EXPANDED_NODE_IDS,prev[s.EXPANDED_NODE_IDS].filter(id => id != idToChange)))
+        } else {
+            setState(prev=>prev.set(s.EXPANDED_NODE_IDS,[idToChange, ...prev[s.EXPANDED_NODE_IDS]]))
+        }
+    }
+
     function renderTree() {
         return RE.Container.col.top.left({},{style:{marginBottom: '15px'}},
             renderViewModeSelector(),
             re(TreeView,{
                 tree: createTree({selections:state[s.SELECTIONS]}),
                 collapsedNodeRenderer: node => node.selection?.title,
-                expandedNodeRenderer: node => node.selection?.title,
-                showBullet: node => node.children.length
+                expandedNodeRenderer: node => (node.selection?.isMarkup??false) || !node.selection ? undefined : renderSingleSelection({selection:node.selection}),
+                showBullet: node => node.children.length,
+                isExpanded,
+                expandCollapse
             })
         )
     }
