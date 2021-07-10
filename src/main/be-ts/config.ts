@@ -27,6 +27,20 @@ interface AppConfig {
 }
 
 async function loadAppConfig(configFilePath:string): Promise<void> {
+
+    // const fileName = 'zorich1-selections.json'
+    // const regex = new RegExp(`^.*Changes to be committed:\\s+\\(use "git restore --staged <file>\\.\\.\\." to unstage\\)\\s+modified:\\s+${fileName}\\s*$`, 's')
+    // const str = 'On branch master\n' +
+    //     'Your branch is ahead of \'origin/master\' by 1 commit.\n' +
+    //     '  (use "git push" to publish your local commits)\n' +
+    //     '\n' +
+    //     'Changes to be committed:\n' +
+    //     '  (use "git restore --staged <file>..." to unstage)\n' +
+    //     '        modified:   zorich1-selections.json\n' +
+    //     '\n' +
+    //     '\n'
+    // console.log('regex.test(str) = ' + regex.test(str))
+
     const configFileDir = path.dirname(configFilePath)
     function toAbsolutePath(relPath:string): string {
         return path.resolve(configFileDir, relPath)

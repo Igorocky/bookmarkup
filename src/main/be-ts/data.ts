@@ -71,7 +71,7 @@ async function saveAndCommit({filePath, data}:{filePath:string, data:string}) {
     await execCmd({
         cmd:'git status',
         msg:'Only one file should be modified and staged for commit.',
-        regex: new RegExp(`^\\s*On branch master\\s+Changes to be committed:\\s+\\(use "git restore --staged <file>\\.\\.\\." to unstage\\)\\s+modified:\\s+${fileName}\\s*$`)
+        regex: new RegExp(`^.*Changes to be committed:\\s+\\(use "git restore --staged <file>\\.\\.\\." to unstage\\)\\s+modified:\\s+${fileName}\\s*$`, 's')
     })
 
     await execCmd({

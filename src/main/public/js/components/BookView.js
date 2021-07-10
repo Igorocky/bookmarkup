@@ -675,7 +675,7 @@ const BookView = ({openView,setPageTitle}) => {
                             style: {marginLeft: '10px'},
                             className: 'navigate-to-page',
                             onClick: e => {
-                                e.stopPropagation()
+                                e.stopPropagation();
                                 (node.selection?.id)?navigateToSelection({selection: node.selection}):null
                             }
                         },
