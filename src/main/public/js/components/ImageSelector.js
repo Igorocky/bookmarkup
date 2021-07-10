@@ -212,6 +212,8 @@ function useImageSelector({onCancel, onSave}) {
             )
         }
 
+        const isAddNewSelectionMode = state[s.EDIT_MODE] === em.ADD_SELECTION
+
         const buttons = [[
             {iconName:"add", style:{backgroundColor:getEditButtonColor(em.ADD_SELECTION)}, onClick: () => setState(state.set(s.EDIT_MODE, em.ADD_SELECTION))},
             {iconName:"control_camera", style:{backgroundColor:getEditButtonColor(em.MOVE)}, onClick: () => setState(state.set(s.EDIT_MODE, em.MOVE))},
@@ -219,14 +221,14 @@ function useImageSelector({onCancel, onSave}) {
             {icon:RE.Icon({style:{transform: "rotate(90deg)"}}, "skip_previous"), style:{backgroundColor:getEditButtonColor(em.RESIZE_TOP)}, onClick: () => setState(state.set(s.EDIT_MODE, em.RESIZE_TOP))},
             {icon:RE.Icon({style:{transform: "rotate(-90deg)"}}, "skip_previous"), style:{backgroundColor:getEditButtonColor(em.RESIZE_BOTTOM)}, onClick: () => setState(state.set(s.EDIT_MODE, em.RESIZE_BOTTOM))},
             {iconName:"skip_next", style:{backgroundColor:getEditButtonColor(em.RESIZE_RIGHT)}, onClick: () => setState(state.set(s.EDIT_MODE, em.RESIZE_RIGHT))},
-            {iconName:"chevron_left", onClick: () => dirBtnClicked({dir:dirLeft}), disabled: !isDirBtnActive({dir:dirLeft})},
-            {iconName:"expand_less", onClick: () => dirBtnClicked({dir:dirUp}), disabled: !isDirBtnActive({dir:dirUp})},
-            {iconName:"expand_more", onClick: () => dirBtnClicked({dir:dirDown}), disabled: !isDirBtnActive({dir:dirDown})},
-            {iconName:"chevron_right", onClick: () => dirBtnClicked({dir:dirRight}), disabled: !isDirBtnActive({dir:dirRight})},
-            {symbol:"1x", style:{backgroundColor:getSpeedButtonColor(ms.SPEED_1)}, onClick: () => setState(state.set(s.MOVE_SPEED, ms.SPEED_1))},
-            {symbol:"2x", style:{backgroundColor:getSpeedButtonColor(ms.SPEED_2)}, onClick: () => setState(state.set(s.MOVE_SPEED, ms.SPEED_2))},
-            {symbol:"3x", style:{backgroundColor:getSpeedButtonColor(ms.SPEED_3)}, onClick: () => setState(state.set(s.MOVE_SPEED, ms.SPEED_3))},
-            {iconName:"delete_forever", style:{color:'red'}, onClick: remove},
+            {iconName:"chevron_left", onClick: () => dirBtnClicked({dir:dirLeft}), disabled: isAddNewSelectionMode || !isDirBtnActive({dir:dirLeft})},
+            {iconName:"expand_less", onClick: () => dirBtnClicked({dir:dirUp}), disabled: isAddNewSelectionMode || !isDirBtnActive({dir:dirUp})},
+            {iconName:"expand_more", onClick: () => dirBtnClicked({dir:dirDown}), disabled: isAddNewSelectionMode || !isDirBtnActive({dir:dirDown})},
+            {iconName:"chevron_right", onClick: () => dirBtnClicked({dir:dirRight}), disabled: isAddNewSelectionMode || !isDirBtnActive({dir:dirRight})},
+            {symbol:"1x", style:{backgroundColor:getSpeedButtonColor(ms.SPEED_1)}, onClick: () => setState(state.set(s.MOVE_SPEED, ms.SPEED_1)), disabled: isAddNewSelectionMode},
+            {symbol:"2x", style:{backgroundColor:getSpeedButtonColor(ms.SPEED_2)}, onClick: () => setState(state.set(s.MOVE_SPEED, ms.SPEED_2)), disabled: isAddNewSelectionMode},
+            {symbol:"3x", style:{backgroundColor:getSpeedButtonColor(ms.SPEED_3)}, onClick: () => setState(state.set(s.MOVE_SPEED, ms.SPEED_3)), disabled: isAddNewSelectionMode},
+            {iconName:"delete_forever", style:{color:'red'}, onClick: remove, disabled: isAddNewSelectionMode},
             {iconName:"cancel", onClick: () => onCancel?.()},
             {iconName:"save", style:{color:'blue'}, onClick: saveSelections},
         ]]

@@ -16,7 +16,7 @@ async function getBook({bookId}: { bookId: string }): Promise<any> {
         throw new Error(`Could not find a book with id ${bookId}`)
     }
     const buffer = await readFile(markup.bookFile, 'UTF-8')
-    return JSON.parse(buffer)
+    return {title:markup.title, ...JSON.parse(buffer)}
 }
 
 async function getSelections({bookId}: { bookId: string }): Promise<any> {

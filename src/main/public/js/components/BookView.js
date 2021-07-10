@@ -18,6 +18,7 @@ const BookView = ({openView}) => {
         EDIT_MODE: 'EDIT_MODE',
         EDITED_SELECTION_PROPS: 'EDITED_SELECTION_PROPS',
         MODAL_ACTIVE: 'MODAL_ACTIVE',
+        VIEW_MODE: 'VIEW_MODE',
     }
 
     //scroll speed
@@ -25,6 +26,12 @@ const BookView = ({openView}) => {
         SPEED_1: 'SPEED_1',
         SPEED_2: 'SPEED_2',
         SPEED_3: 'SPEED_3',
+    }
+
+    //view mode
+    const vm = {
+        BOOK: 'BOOK',
+        TREE: 'TREE',
     }
 
     const query = useQuery()
@@ -47,7 +54,7 @@ const BookView = ({openView}) => {
         setSelections: setSelectionsForImageSelector,
         saveSelections: saveSelectionsForImageSelector,
     } = useImageSelector({
-        onCancel: () => setState(prev=>prev.set(s.EDIT_MODE,false)),
+        onCancel: cancelSelectionEditing,
         onSave: newParts => {
             const newProps = {
                 title: state[s.EDITED_SELECTION_PROPS].title,
@@ -116,6 +123,7 @@ const BookView = ({openView}) => {
             [s.SCROLL_SPEED]: getParam(s.SCROLL_SPEED, ss.SPEED_1),
             [s.FOCUSED_SELECTION_ID]: getParam(s.FOCUSED_SELECTION_ID, 1),
             [s.SELECTIONS]: getParam(s.SELECTIONS, null),
+            [s.VIEW_MODE]: getParam(s.VIEW_MODE, vm.BOOK),
             getFocusedSelection() {
                 return this[s.SELECTIONS][this.getIndexOfFocusedSelection()]
             },
@@ -125,6 +133,14 @@ const BookView = ({openView}) => {
                 for (let i = 0; i < selections.length; i++) {
                     if (selections[i].id == focusedId) {
                         return i
+                    }
+                }
+            },
+            getSelectionById(id) {
+                const selections = this[s.SELECTIONS]
+                for (const selection of selections) {
+                    if (selection.id == id) {
+                        return selection
                     }
                 }
             }
@@ -155,10 +171,8 @@ const BookView = ({openView}) => {
         })
     }
 
-    function createClipPath({id, boundaries}) {
-        return re('clipPath', {key:`clip-path-${id}`, id},
-            createRect({boundaries, key:`clip-path-rect-${id}`})
-        )
+    function cancelSelectionEditing() {
+        setState(prev=>prev.set(s.EDIT_MODE,false))
     }
 
     function renderImage({imgPath, key, x, y, width, height, clipPath}) {
@@ -368,7 +382,7 @@ const BookView = ({openView}) => {
     function addNewSelection() {
         const newSelection = {
             id: (state[s.SELECTIONS].map(e => e.id).max()??0) + 1,
-            title: 'New selection',
+            title: '',
             parts: []
         }
         const newSelections = [
@@ -377,28 +391,34 @@ const BookView = ({openView}) => {
         ]
         saveSelections({
             newSelections,
-            onDone: () => setState(prev => prev
-                .set(s.SELECTIONS, newSelections)
-                .set(s.FOCUSED_SELECTION_ID, newSelection.id)
-            )
+            onDone: () => {
+                setState(prev =>
+                    editSelection({
+                        id: newSelection.id,
+                        state: prev
+                            .set(s.SELECTIONS, newSelections)
+                            .set(s.FOCUSED_SELECTION_ID, newSelection.id)
+                    })
+                )
+            }
         })
     }
 
-    function editSelection() {
-        const editedSelection = state.getFocusedSelection()
+    function editSelection({id, state}) {
+        const editedSelection = state.getSelectionById(id)
         const parts = editedSelection.parts
         setSelectionsForImageSelector({selections: parts})
-        setState(prev=>prev
+        return state
             .set(s.EDIT_MODE, true)
-            .set(s.VIEW_CURR_Y, parts.length?parts.map(p=>p.minY).min():prev[s.VIEW_CURR_Y])
+            .set(s.FOCUSED_SELECTION_ID, id)
+            .set(s.VIEW_CURR_Y, parts.length?parts.map(p=>p.minY).min():state[s.VIEW_CURR_Y])
             .set(s.EDITED_SELECTION_PROPS, {title: editedSelection.title, isMarkup: editedSelection.isMarkup})
-        )
     }
 
     function renderSelectionsList() {
         const buttons = [[
             {iconName:"add", style:{}, onClick: addNewSelection},
-            {iconName:"settings", style:{}, disabled: !state[s.SELECTIONS].length, onClick: editSelection},
+            {iconName:"settings", style:{}, disabled: !state[s.SELECTIONS].length, onClick: () => setState(editSelection({id:state[s.FOCUSED_SELECTION_ID], state}))},
             {iconName:"delete_forever", style:{}, disabled: !state[s.SELECTIONS].length, onClick: deleteSelection},
         ]]
 
@@ -470,7 +490,10 @@ const BookView = ({openView}) => {
                         const newTitle = event.nativeEvent.target.value
                         updateEditedSelectionProps({prop:'title',value:newTitle})
                     },
-                    onKeyUp: event => event.nativeEvent.keyCode == 13 ? saveSelectionsForImageSelector() : null,
+                    onKeyUp: event =>
+                        event.nativeEvent.keyCode == 13 ? saveSelectionsForImageSelector()
+                            : event.nativeEvent.keyCode == 27 ? cancelSelectionEditing()
+                            : null,
                     value: state[s.EDITED_SELECTION_PROPS].title
                 }
             ),
@@ -511,13 +534,27 @@ const BookView = ({openView}) => {
         )
     }
 
+    function renderViewModeSelector() {
+        return RE.ButtonGroup({variant:'contained', size:'small'},
+            RE.Button({onClick: () => setState(prev=>prev.set(s.VIEW_MODE, vm.BOOK)), style:{backgroundColor:state[s.VIEW_MODE] === vm.BOOK?'rgb(150,150,255)':undefined}},
+                RE.Icon({}, 'menu_book')
+            ),
+            RE.Button({onClick: () => setState(prev=>prev.set(s.VIEW_MODE, vm.TREE)), style:{backgroundColor:state[s.VIEW_MODE] === vm.TREE?'rgb(150,150,255)':undefined}},
+                RE.Icon({}, 'format_list_bulleted')
+            )
+        )
+    }
+
     function renderPages() {
         const {svgContent:viewableContentSvgContent, boundaries:viewableContentBoundaries} = renderViewableContent({})
 
         const height = state[s.PAGE_HEIGHT_PX]
         const width = height * (viewableContentBoundaries.width()/viewableContentBoundaries.height())
         return RE.Container.col.top.left({},{},
-            renderPagination(),
+            RE.Container.row.left.center({},{style:{marginRight:'20px'}},
+                renderViewModeSelector(),
+                renderPagination(),
+            ),
             state[s.EDIT_MODE] ? RE.Container.col.top.left({}, {},
                 renderSelectionPropsControls(),
                 renderControlButtonsOfImageSelector()
@@ -554,44 +591,26 @@ const BookView = ({openView}) => {
                 } else {
                     return 1
                 }
+            } else {
+                return undefined
             }
         }
-        let roots = [{children:[]}]
+        let roots = [{selection:{title:state[s.BOOK].title, isMarkup:true}, children:[]}]
         for (let selection of selections) {
             const level = Math.min(roots.length, getLevel(selection))
-            if (hasNoValue(level)) {
-                roots.last().children.push({node:selection,children:[]})
+            if (hasNoValue(level) || !selection.isMarkup) {
+                roots.last().children.push({id:selection.id,selection,children:[]})
             } else {
-                const newNode = {node:selection,children:[]}
+                const newNode = {id:selection.id,selection,children:[]}
                 roots[level-1].children.push(newNode)
                 roots = roots.slice(0,level)
                 roots.push(newNode)
             }
         }
-        return roots[0].children
+        return roots[0]
     }
 
-    function renderTree() {
-        function mapToTreeItems(nodes) {
-            return nodes.map(n => RE.TreeItem(
-                {nodeId:n.id,label:n.title},
-                mapToTreeItems(n.children)
-            ))
-        }
-        const tree = createTree({selections:state[s.SELECTIONS]})
-        return RE.TreeView({defaultCollapseIcon:'-',defaultExpandIcon:'+'},
-            mapToTreeItems(tree)
-        )
-    }
-
-    // if (state[s.SELECTIONS]) {
-    //     const tree = createTree({selections:state[s.SELECTIONS]})
-    //     console.log('tree', tree)
-    // }
-
-    if (!ready) {
-        return "Loading..."
-    } else {
+    function renderBookView() {
         return RE.Container.col.top.left({},{},
             RE.table({},
                 RE.tbody({},
@@ -607,5 +626,25 @@ const BookView = ({openView}) => {
             ),
             renderConfirmActionDialog(),
         )
+    }
+
+    function renderTree() {
+        return RE.Container.col.top.left({},{style:{marginBottom: '15px'}},
+            renderViewModeSelector(),
+            re(TreeView,{
+                tree: createTree({selections:state[s.SELECTIONS]}),
+                collapsedNodeRenderer: node => node.selection?.title,
+                expandedNodeRenderer: node => node.selection?.title,
+                showBullet: node => node.children.length
+            })
+        )
+    }
+
+    if (!ready) {
+        return "Loading..."
+    } else if (state[s.VIEW_MODE] === vm.BOOK) {
+        return renderBookView()
+    } else {
+        return renderTree()
     }
 }
