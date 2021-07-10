@@ -1,2 +1,0 @@
-* show env name in page title
-* page number shift

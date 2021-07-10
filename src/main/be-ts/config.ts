@@ -4,7 +4,7 @@ import path from 'path'
 import crypto from 'crypto'
 import {getBook} from "./data";
 
-export {loadAppConfig, appConfig}
+export {loadAppConfig, appConfig, getEnvironmentName}
 
 const readFile = util.promisify(fs.readFile)
 
@@ -21,6 +21,7 @@ interface BookMarkupConfig {
 }
 
 interface AppConfig {
+    environmentName: string,
     markups: BookMarkupConfig[]
     markupsById: Record<string, BookMarkupConfig>
 }
@@ -39,6 +40,10 @@ async function loadAppConfig(configFilePath:string): Promise<void> {
     }))
     appConfig.markupsById = appConfig.markups.reduce((prev,curr)=>({...prev,[curr.id]:curr}), {})
     await validateHashes(appConfig.markups)
+}
+
+function getEnvironmentName() {
+    return appConfig.environmentName
 }
 
 async function validateHashes(markups:BookMarkupConfig[]) {

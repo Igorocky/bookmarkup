@@ -1,9 +1,10 @@
 'use strict';
 
-const BookSelector = ({openView}) => {
+const BookSelector = ({openView,setPageTitle}) => {
     const [availableBooks, setAvailableBooks] = useState(null)
 
     useEffect(() => {
+        setPageTitle('Book Markup')
         be.listAvailableBooks().then(books => setAvailableBooks(books))
     }, [])
 

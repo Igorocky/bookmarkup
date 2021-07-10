@@ -7,7 +7,7 @@ const VIEW_HEIGHT_MAX = 3000
 const VIEW_HEIGHT_PX_MIN = 300
 const VIEW_HEIGHT_PX_MAX = 3000
 
-const BookView = ({openView}) => {
+const BookView = ({openView,setPageTitle}) => {
     const {renderSelectedArea} = SelectedAreaRenderer()
 
     //state props
@@ -126,6 +126,7 @@ const BookView = ({openView}) => {
             .set(s.SELECTIONS, selections)
             .set(s.FOCUSED_SELECTION_ID, selections[0]?.id??1)
         )
+        setPageTitle(book.title)
         setReady(true)
     }
 

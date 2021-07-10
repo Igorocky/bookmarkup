@@ -24,6 +24,7 @@ function callBe(methodName, params) {
 }
 
 const be = {
+    getEnvironmentName: () => callBe('getEnvironmentName',{}),
     getBook: (bookId) => callBe('getBook',{bookId}),
     getSelections: (bookId) => callBe('getSelections',{bookId}),
     listAvailableBooks: () => callBe('listAvailableBooks',{}),

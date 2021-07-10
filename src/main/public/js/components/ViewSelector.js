@@ -19,6 +19,20 @@ function getViewAbsoluteUrl(relUrl) {
 
 const ViewSelector = ({}) => {
     const [currentViewUrl, setCurrentViewUrl] = useState(null)
+    const [environmentName, setEnvironmentName] = useState(null)
+    const [pageTitle, setPageTitle] = useState(null)
+
+    useEffect(() => {
+        be.getEnvironmentName().then(envName => setEnvironmentName(envName))
+    }, [])
+
+    useEffect(() => {
+        updatePageTitle()
+    }, [environmentName, pageTitle])
+
+    function updatePageTitle() {
+        document.title = `${environmentName == 'PROD' ? '' : '{' + environmentName + '} - '}${pageTitle}`
+    }
 
     function getViewRoutes() {
         return VIEWS.map(view => re(Route, {
@@ -29,6 +43,7 @@ const ViewSelector = ({}) => {
                 ...props,
                 ...(view.props?view.props:{}),
                 openView: url => setCurrentViewUrl(url),
+                setPageTitle: str => setPageTitle(str),
             })
         }))
     }
