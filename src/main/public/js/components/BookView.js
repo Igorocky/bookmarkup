@@ -530,7 +530,7 @@ const BookView = ({openView,setPageTitle}) => {
         )
     }
 
-    function renderSingleSelection({selection}) {
+    function renderSingleSelection({selection,renderFrame}) {
         const selectionBoundaries = selection.overallBoundaries
         if (!selectionBoundaries) {
             return
@@ -554,6 +554,12 @@ const BookView = ({openView,setPageTitle}) => {
                 boundaries: selectionBoundaries,
             },
             ...svgContent,
+            renderFrame?createRect({
+                key:`singleSelection-frame`,
+                boundaries:selectionBoundaries,
+                opacity:0,
+                borderColor:'black'
+            }):null
         )
     }
 
@@ -682,7 +688,9 @@ const BookView = ({openView,setPageTitle}) => {
                         (node.selection?.id)?NAVIGATE_TO_PAGE_SYMBOL:''
                     )
                 ),
-                expandedNodeRenderer: node => (node.selection?.isMarkup??false) || !node.selection ? undefined : renderSingleSelection({selection:node.selection}),
+                expandedNodeRenderer: node => (node.selection?.isMarkup??false) || !node.selection
+                    ? undefined
+                    : renderSingleSelection({selection:node.selection,renderFrame:true}),
                 showBullet: node => node.children.length,
                 isExpanded,
                 expandCollapse
