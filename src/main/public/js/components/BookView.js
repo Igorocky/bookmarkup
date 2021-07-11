@@ -6,6 +6,7 @@ const VIEW_HEIGHT_MIN = 500
 const VIEW_HEIGHT_MAX = 3000
 const VIEW_HEIGHT_PX_MIN = 300
 const VIEW_HEIGHT_PX_MAX = 3000
+const LIST_OF_SELECTIONS_ID = 'list-of-selections'
 
 const BookView = ({openView,setPageTitle}) => {
     const {renderSelectedArea} = SelectedAreaRenderer()
@@ -435,6 +436,10 @@ const BookView = ({openView,setPageTitle}) => {
             .set(s.EDITED_SELECTION_PROPS, {title: editedSelection.title, isMarkup: editedSelection.isMarkup})
     }
 
+    function getSelectionHtmlId(selection) {
+        return `selection-${selection.id}`
+    }
+
     function renderSelectionsList() {
         const buttons = [[
             {iconName:"add", style:{}, onClick: addNewSelection},
@@ -448,18 +453,22 @@ const BookView = ({openView,setPageTitle}) => {
                 keys: buttons,
                 variant: "outlined",
             }),
-            state[s.SELECTIONS].map((selection,idx) => RE.Paper(
-                {
-                    key:`selection-${selection.id}-${selection.overallBoundaries?.minY??0}`,
-                    style:{
-                        backgroundColor:state[s.FOCUSED_SELECTION_ID] == selection.id ? 'cyan' : undefined,
-                        padding:'5px',
-                        cursor: 'pointer',
+            RE.div({id:LIST_OF_SELECTIONS_ID, style:{maxHeight:`${window.innerHeight-100}px`, overflow:'scroll', position:'relative'}},
+                state[s.SELECTIONS].map(selection => RE.Paper(
+                    {
+                        key:getSelectionHtmlId(selection),
+                        id:getSelectionHtmlId(selection),
+                        style:{
+                            backgroundColor:state[s.FOCUSED_SELECTION_ID] == selection.id ? 'cyan' : undefined,
+                            padding:'5px',
+                            cursor: 'pointer',
+                            marginBottom:'2px'
+                        },
+                        onClick: () => navigateToSelection({selection})
                     },
-                    onClick: () => navigateToSelection({selection})
-                },
-                `${selection.isMarkup?PARAGRAPH_SYMBOL+' ':''}${(!selection.parts?.length)?'[empty] ':''}${selection.title}`
-            ))
+                    `${selection.isMarkup?PARAGRAPH_SYMBOL+' ':''}${(!selection.parts?.length)?'[empty] ':''}${selection.title}`
+                ))
+            )
         )
     }
 
@@ -488,6 +497,8 @@ const BookView = ({openView,setPageTitle}) => {
                 const clickedSelection = state[s.SELECTIONS].find(sel => sel.parts?.some(p => p.includesPoint(clickedPoint)))
                 if (clickedSelection) {
                     setState(prev => prev.set(s.FOCUSED_SELECTION_ID, clickedSelection.id))
+                    const selectionDiv = document.getElementById(getSelectionHtmlId(clickedSelection))
+                    document.getElementById(LIST_OF_SELECTIONS_ID).scrollTop = selectionDiv.offsetTop
                 }
             }
         } else {

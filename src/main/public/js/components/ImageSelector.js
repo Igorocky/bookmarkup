@@ -273,6 +273,7 @@ function useImageSelector({onCancel, onSave}) {
                 .set(s.SELECTED_BOUNDARIES, selections)
                 .set(s.SELECTED_POINT, null)
                 .set(s.SELECTED_RECT_IDX, 0)
+                .set(s.MOVE_SPEED, ms.SPEED_2)
                 .set(s.EDIT_MODE, em.ADD_SELECTION)
             )
         },
