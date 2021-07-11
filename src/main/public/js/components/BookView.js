@@ -311,8 +311,16 @@ const BookView = ({openView,setPageTitle}) => {
                     : viewHeight * 0.95
         }
 
+        function getScaleFactor(scrollSpeedAlias) {
+            return scrollSpeedAlias == ss.SPEED_1 ? 0.005
+                : scrollSpeedAlias == ss.SPEED_2 ? 0.05
+                    : 0.1
+        }
+
 
         const scrollSpeed = getScrollSpeedDy(state[s.SCROLL_SPEED])
+        const scaleFactorDecrease = 1-getScaleFactor(state[s.SCROLL_SPEED])
+        const scaleFactorIncrease = 1+getScaleFactor(state[s.SCROLL_SPEED])
 
 
         function getSpeedButtonColor(speed) {
@@ -327,14 +335,15 @@ const BookView = ({openView,setPageTitle}) => {
             {symbol:"1x", style:{backgroundColor:getSpeedButtonColor(ss.SPEED_1)}, onClick: () => setState(state.set(s.SCROLL_SPEED, ss.SPEED_1))},
             {symbol:"2x", style:{backgroundColor:getSpeedButtonColor(ss.SPEED_2)}, onClick: () => setState(state.set(s.SCROLL_SPEED, ss.SPEED_2))},
             {symbol:"3x", style:{backgroundColor:getSpeedButtonColor(ss.SPEED_3)}, onClick: () => setState(state.set(s.SCROLL_SPEED, ss.SPEED_3))},
-            {iconName:"vertical_align_center", onClick: () => setViewHeightPx(Math.max(VIEW_HEIGHT_PX_MIN, viewHeightPx*0.95))},
-            {iconName:"height", onClick: () => setViewHeightPx(Math.min(VIEW_HEIGHT_PX_MAX, viewHeightPx*1.05))},
-            {iconName:"remove_circle_outline", onClick: () => setViewHeight(Math.min(VIEW_HEIGHT_MAX, viewHeight*1.05))},
-            {iconName:"add_circle_outline", onClick: () => setViewHeight(Math.max(VIEW_HEIGHT_MIN, viewHeight*0.95))},
+            {iconName:"vertical_align_center", onClick: () => setViewHeightPx(Math.max(VIEW_HEIGHT_PX_MIN, viewHeightPx*scaleFactorDecrease))},
+            {iconName:"height", onClick: () => setViewHeightPx(Math.min(VIEW_HEIGHT_PX_MAX, viewHeightPx*scaleFactorIncrease))},
+            {iconName:"remove_circle_outline", onClick: () => setViewHeight(Math.min(VIEW_HEIGHT_MAX, viewHeight*scaleFactorIncrease))},
+            {iconName:"add_circle_outline", onClick: () => setViewHeight(Math.max(VIEW_HEIGHT_MIN, viewHeight*scaleFactorDecrease))},
         ]]
 
         return re(KeyPad, {
             componentKey: "book-controlButtons",
+            orientation:'vertical',
             keys: buttons,
             variant: "outlined",
             onKeyUp: ({keyCode,shiftKey}) => {
@@ -599,26 +608,36 @@ const BookView = ({openView,setPageTitle}) => {
                 renderSelectionPropsControls(),
                 renderControlButtonsOfImageSelector()
             ) : null,
-            RE.svg(
-                {
-                    width,
-                    height,
-                    boundaries: viewableContentBoundaries,
-                    onClick: clickHandler,
-                    onWheel,
-                    props: {
-                        style: {cursor: getCursorType()}
-                    }
-                },
-                ...viewableContentSvgContent,
-                createRect({
-                    boundaries:viewableContentBoundaries,
-                    opacity:0,
-                    borderColor:'black',
-                    key: 'book-view-boarder'
-                })
-            ),
-            renderControlButtons(),
+            RE.table({},
+                RE.tbody({},
+                    RE.tr({},
+                        RE.td({valign:'top'},
+                            renderControlButtons(),
+                        ),
+                        RE.td({valign:'top'},
+                            RE.svg(
+                                {
+                                    width,
+                                    height,
+                                    boundaries: viewableContentBoundaries,
+                                    onClick: clickHandler,
+                                    onWheel,
+                                    props: {
+                                        style: {cursor: getCursorType()}
+                                    }
+                                },
+                                ...viewableContentSvgContent,
+                                createRect({
+                                    boundaries:viewableContentBoundaries,
+                                    opacity:0,
+                                    borderColor:'black',
+                                    key: 'book-view-boarder'
+                                })
+                            ),
+                        )
+                    ),
+                )
+            )
         )
     }
 
