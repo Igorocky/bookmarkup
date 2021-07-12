@@ -1,3 +1,5 @@
+* add tags.
+* increase size of bullets.
 * show navigation buttons vertically.
 * add a search over the tree.
 * compress single selections with large empty spaces.
