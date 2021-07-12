@@ -1,5 +1,7 @@
+* highlight last clicked tree elem. 
 * add tags.
 * increase size of bullets.
 * show navigation buttons vertically.
 * add a search over the tree.
+* add a search over the selections list.
 * compress single selections with large empty spaces.
