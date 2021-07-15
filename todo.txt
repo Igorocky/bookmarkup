@@ -1,4 +1,5 @@
-* highlight last clicked tree elem. 
+* page dragging by mouse.
+* highlight last clicked tree elem.
 * add tags.
 * increase size of bullets.
 * show navigation buttons vertically.
