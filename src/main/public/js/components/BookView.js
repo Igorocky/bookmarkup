@@ -24,6 +24,7 @@ const BookView = ({openView,setPageTitle}) => {
         MODAL_ACTIVE: 'MODAL_ACTIVE',
         VIEW_MODE: 'VIEW_MODE',
         EXPANDED_NODE_IDS: 'EXPANDED_NODE_IDS',
+        FOCUSED_NODE_ID: 'FOCUSED_NODE_ID',
     }
 
     //scroll speed
@@ -692,6 +693,7 @@ const BookView = ({openView,setPageTitle}) => {
     }
 
     function expandCollapse(idToChange) {
+        setState(prev=>prev.set(s.FOCUSED_NODE_ID, idToChange))
         if (isExpanded(idToChange)) {
             setState(prev=>prev.set(s.EXPANDED_NODE_IDS,prev[s.EXPANDED_NODE_IDS].filter(id => id != idToChange)))
         } else {
@@ -704,7 +706,7 @@ const BookView = ({openView,setPageTitle}) => {
             renderViewModeSelector(),
             re(TreeView,{
                 tree: createTree({selections:state[s.SELECTIONS]}),
-                collapsedNodeRenderer: node => RE.Container.row.left.center({},{},
+                collapsedNodeRenderer: node => RE.Container.row.left.center({},{style: {backgroundColor:state[s.FOCUSED_NODE_ID] === node.id ? 'yellow' : undefined}},
                     node.selection?.title,
                     RE.span(
                         {
