@@ -25,6 +25,8 @@ const BookView = ({openView,setPageTitle}) => {
         VIEW_MODE: 'VIEW_MODE',
         EXPANDED_NODE_IDS: 'EXPANDED_NODE_IDS',
         FOCUSED_NODE_ID: 'FOCUSED_NODE_ID',
+        SEARCH_TEXT: 'SEARCH_TEXT',
+        SEARCH_MATCH_SUBSTRING: 'SEARCH_MATCH_SUBSTRING',
     }
 
     //scroll speed
@@ -141,8 +143,10 @@ const BookView = ({openView,setPageTitle}) => {
             [s.SCROLL_SPEED]: getParam(s.SCROLL_SPEED, ss.SPEED_1),
             [s.FOCUSED_SELECTION_ID]: getParam(s.FOCUSED_SELECTION_ID, null),
             [s.SELECTIONS]: getParam(s.SELECTIONS, null),
-            [s.VIEW_MODE]: getParam(s.VIEW_MODE, vm.BOOK),
+            [s.VIEW_MODE]: getParam(s.VIEW_MODE, vm.TREE),
             [s.EXPANDED_NODE_IDS]: getParam(s.EXPANDED_NODE_IDS, []),
+            [s.SEARCH_TEXT]: '',
+            [s.SEARCH_MATCH_SUBSTRING]: true,
             getFocusedSelection() {
                 return this[s.SELECTIONS][this.getIndexOfFocusedSelection()]
             },
@@ -642,6 +646,70 @@ const BookView = ({openView,setPageTitle}) => {
         )
     }
 
+    function createSearchRegex({searchString,isSubstring}) {
+        const result = []
+        if (isSubstring) {
+            result.push('(.*)(')
+            result.push(searchString)
+            result.push(')')
+        } else {
+            for (let i = 0; i < searchString.length; i++) {
+                result.push('(.*)(')
+                result.push(`\\u${searchString.charCodeAt(i).toString(16).padStart(4,'0')}`)
+                result.push(')')
+            }
+        }
+        result.push('(.*)')
+        return result.join('')
+    }
+
+    function findMatchedAreas({str, regex}) {
+        const matchRes = (str??'').match(regex)
+        if (!matchRes) {
+            return undefined
+        }
+        const result = ['']
+        let prevWasEmpty = false
+        for (let i = 1; i < matchRes.length; i++) {
+            const group = matchRes[i]
+            if (i%2==0) {
+                if (prevWasEmpty) {
+                    result[result.length-1] = result.last()+group
+                } else {
+                    result.push(group)
+                }
+            } else {
+                if (group === '') {
+                    prevWasEmpty = true
+                } else {
+                    prevWasEmpty = false
+                    result.push(group)
+                }
+            }
+        }
+        return result
+    }
+
+    function removeNotMatchedNodes({tree}) {
+        const newTree = {
+            ...tree,
+            children: tree.children.map(ch => {
+                if (ch.selection?.isMarkup) {
+                    const newCh = removeNotMatchedNodes({tree:ch})
+                    if (newCh.children.length || newCh.matchedAreas) {
+                        return newCh
+                    } else {
+                        return null
+                    }
+                } else {
+                    return ch.matchedAreas ? ch : null
+                }
+            })
+        }
+        newTree.children = newTree.children.filter(ch => ch)
+        return newTree
+    }
+
     function createTree({selections}) {
         function getLevel(selection) {
             if (selection.isMarkup) {
@@ -656,18 +724,38 @@ const BookView = ({openView,setPageTitle}) => {
             }
         }
         let roots = [{selection:{title:state[s.BOOK].title, isMarkup:true}, children:[]}]
+        const trimmedSearchText = state[s.SEARCH_TEXT].trim().toLowerCase()
+        const searchRegex = trimmedSearchText.length
+            ? new RegExp(createSearchRegex({searchString:trimmedSearchText, isSubstring:state[s.SEARCH_MATCH_SUBSTRING]}))
+            : null
         for (let selection of selections) {
             const level = Math.min(roots.length, getLevel(selection))
             if (hasNoValue(level) || !selection.isMarkup) {
-                roots.last().children.push({id:selection.id,selection,children:[]})
+                const newNode = {id:selection.id,selection,children:[]}
+                if (searchRegex && selection.title) {
+                    const matchedAreas = findMatchedAreas({str:selection.title.toLowerCase(), regex:searchRegex})
+                    if (matchedAreas) {
+                        newNode.matchedAreas = matchedAreas
+                        roots.last().children.push(newNode)
+                    }
+                } else {
+                    roots.last().children.push(newNode)
+                }
             } else {
                 const newNode = {id:selection.id,selection,children:[]}
                 roots[level-1].children.push(newNode)
                 roots = roots.slice(0,level)
                 roots.push(newNode)
+                if (searchRegex && selection.title) {
+                    const matchedAreas = findMatchedAreas({str:selection.title.toLowerCase(), regex:searchRegex})
+                    if (matchedAreas) {
+                        newNode.matchedAreas = matchedAreas
+                    }
+                }
             }
         }
-        return roots[0]
+        const tree = searchRegex?removeNotMatchedNodes({tree:roots[0]}):roots[0]
+        return tree
     }
 
     function renderBookView() {
@@ -700,13 +788,67 @@ const BookView = ({openView,setPageTitle}) => {
         }
     }
 
+    function cancelSearch() {
+        setState(prev=>prev.set(s.SEARCH_TEXT,''))
+    }
+
+    function renderSearchControls() {
+        return [
+            RE.TextField(
+                {
+                    variant: 'outlined', label: 'Title',
+                    style: {width: '200px'},
+                    autoFocus: true,
+                    onChange: event => {
+                        const newSearchText = event.nativeEvent.target.value
+                        setState(prev => prev.set(s.SEARCH_TEXT, newSearchText))
+                    },
+                    onKeyUp: event =>
+                        event.nativeEvent.keyCode == 13 ? setState(prev=>prev.set(s.SEARCH_EXPAND_ALL, true))
+                            : event.nativeEvent.keyCode == 27 ? cancelSearch()
+                            : null,
+                    value: state[s.SEARCH_TEXT]
+                }
+            ),
+            RE.IconButton({onClick:cancelSearch},
+                RE.Icon({}, 'cancel')
+            ),
+            RE.FormControlLabel({
+                control: RE.Checkbox({
+                    checked: state[s.SEARCH_MATCH_SUBSTRING],
+                    onChange: (event,newValue) => setState(prev=>prev.set(s.SEARCH_MATCH_SUBSTRING, newValue))
+                }),
+                label:'substring'
+            })
+        ]
+    }
+
+    function renderMatchedAreas({key, matchedAreas}) {
+        const result = []
+        for (let i = 0; i < matchedAreas.length; i++) {
+            result.push(RE.span(
+                {
+                    key:`${key}-${i}`,
+                    style:{
+                        backgroundColor: i%2==0 ? 'Lime' : undefined
+                    }
+                },
+                matchedAreas[i]
+            ))
+        }
+        return result
+    }
+
     function renderTree() {
         return RE.Container.col.top.left({},{style:{marginBottom: '15px'}},
-            renderViewModeSelector(),
+            RE.Container.row.left.center({},{style:{marginRight: '15px'}},
+                renderViewModeSelector(),
+                renderSearchControls(),
+            ),
             re(TreeView,{
                 tree: createTree({selections:state[s.SELECTIONS]}),
                 collapsedNodeRenderer: node => RE.Container.row.left.center({},{},
-                    node.selection?.title,
+                    node.matchedAreas?renderMatchedAreas({key:node.id,matchedAreas:node.matchedAreas}):node.selection?.title,
                     RE.span(
                         {
                             style: {marginLeft: '10px'},

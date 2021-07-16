@@ -96,6 +96,7 @@ const RE = {
     FormGroup: reFactory(MaterialUI.FormGroup),
     Grid: reFactory(MaterialUI.Grid),
     Icon: reFactory(MaterialUI.Icon),
+    IconButton: reFactory(MaterialUI.IconButton),
     List: reFactory(MaterialUI.List),
     ListItem: reFactory(MaterialUI.ListItem),
     ListItemText: reFactory(MaterialUI.ListItemText),
