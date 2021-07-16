@@ -693,7 +693,6 @@ const BookView = ({openView,setPageTitle}) => {
     }
 
     function expandCollapse(idToChange) {
-        setState(prev=>prev.set(s.FOCUSED_NODE_ID, idToChange))
         if (isExpanded(idToChange)) {
             setState(prev=>prev.set(s.EXPANDED_NODE_IDS,prev[s.EXPANDED_NODE_IDS].filter(id => id != idToChange)))
         } else {
@@ -706,7 +705,7 @@ const BookView = ({openView,setPageTitle}) => {
             renderViewModeSelector(),
             re(TreeView,{
                 tree: createTree({selections:state[s.SELECTIONS]}),
-                collapsedNodeRenderer: node => RE.Container.row.left.center({},{style: {backgroundColor:state[s.FOCUSED_NODE_ID] === node.id ? 'yellow' : undefined}},
+                collapsedNodeRenderer: node => RE.Container.row.left.center({},{},
                     node.selection?.title,
                     RE.span(
                         {
@@ -725,7 +724,9 @@ const BookView = ({openView,setPageTitle}) => {
                     : renderSingleSelection({selection:node.selection,renderFrame:true}),
                 showBullet: node => node.children.length,
                 isExpanded,
-                expandCollapse
+                expandCollapse,
+                focusedNodeId:state[s.FOCUSED_NODE_ID],
+                setFocusedNodeId:id=>setState(prev=>prev.set(s.FOCUSED_NODE_ID, id))
             })
         )
     }

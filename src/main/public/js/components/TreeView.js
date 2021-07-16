@@ -3,7 +3,7 @@
 const COLLAPSED_SIGN = String.fromCharCode(8901)
 const EXPANDED_SIGN = String.fromCharCode(8728)
 
-function TreeView({tree, collapsedNodeRenderer, expandedNodeRenderer, showBullet, isExpanded, expandCollapse}) {
+function TreeView({tree, collapsedNodeRenderer, expandedNodeRenderer, showBullet, isExpanded, expandCollapse, focusedNodeId, setFocusedNodeId}) {
 
     function renderExpandedNodeContent({node}) {
         const expandedContent = expandedNodeRenderer(node);
@@ -33,7 +33,16 @@ function TreeView({tree, collapsedNodeRenderer, expandedNodeRenderer, showBullet
         const expanded = isExpanded(node.id)
         return RE.table({style:{borderCollapse: 'collapse'}},
             RE.tbody({},
-                RE.tr({key:node.id, className:'tree-node', onClick: () => expandCollapse(node.id)},
+                RE.tr(
+                    {
+                        key:node.id,
+                        className:'tree-node',
+                        style:{backgroundColor:focusedNodeId === node.id ? 'yellow' : undefined},
+                        onClick: () => {
+                            setFocusedNodeId(node.id)
+                            expandCollapse(node.id)
+                        }
+                    },
                     RE.td({style: {width:'8px'}},
                         showBullet(node)?(expanded?EXPANDED_SIGN:COLLAPSED_SIGN):'',
                     ),
