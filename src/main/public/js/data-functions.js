@@ -79,6 +79,10 @@ function sortBy(arr, attr) {
     })
 }
 
+Array.prototype.sortBy = function (attr) {
+    return sortBy(this, attr)
+}
+
 Array.prototype.min = function () {
     return this.length?this.reduce((a,b) => hasValue(a)?(hasValue(b)?(Math.min(a,b)):a):b):undefined
 }
@@ -121,6 +125,18 @@ Array.prototype.modifyAtIdx = function(idx, modifier) {
 
 Array.prototype.removeAtIdx = function (idx) {
     return this.filter((e,i) => i!==idx)
+}
+
+Array.prototype.distinct = function () {
+    const res = []
+    const set = new Set()
+    for (const elem of this) {
+        if (!set.has(elem)) {
+            set.add(elem)
+            res.push(elem)
+        }
+    }
+    return res
 }
 
 function removeAtIdx(arr,idx) {

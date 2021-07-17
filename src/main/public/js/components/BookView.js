@@ -81,6 +81,7 @@ const BookView = ({openView,setPageTitle}) => {
             const newProps = {
                 title: state[s.EDITED_SELECTION_PROPS].title,
                 isMarkup: state[s.EDITED_SELECTION_PROPS].isMarkup,
+                tags: state[s.EDITED_SELECTION_PROPS].tags,
             }
             const newSelections = sortBy(
                 state[s.SELECTIONS].modifyAtIdx(
@@ -145,7 +146,7 @@ const BookView = ({openView,setPageTitle}) => {
             [s.SCROLL_SPEED]: getParam(s.SCROLL_SPEED, ss.SPEED_1),
             [s.FOCUSED_SELECTION_ID]: getParam(s.FOCUSED_SELECTION_ID, null),
             [s.SELECTIONS]: getParam(s.SELECTIONS, null),
-            [s.VIEW_MODE]: getParam(s.VIEW_MODE, vm.TREE),
+            [s.VIEW_MODE]: getParam(s.VIEW_MODE, vm.BOOK),
             [s.EXPANDED_NODE_IDS]: getParam(s.EXPANDED_NODE_IDS, []),
             [s.SEARCH_TEXT]: '',
             getFocusedSelection() {
@@ -444,11 +445,22 @@ const BookView = ({openView,setPageTitle}) => {
         const editedSelection = state.getSelectionById(id)
         const parts = editedSelection.parts
         setSelectionsForImageSelector({selections: parts})
+        const tags = (editedSelection.tags??[]).distinct().sortBy((a,b)=>a<b)
+        const allKnownTags = state[s.SELECTIONS]
+            .filter(s=>s.tags?.length)
+            .flatMap(s=>s.tags)
+            .distinct()
+            .sortBy((a,b)=>a<b)
         return state
             .set(s.EDIT_MODE, true)
             .set(s.FOCUSED_SELECTION_ID, id)
             .set(s.VIEW_CURR_Y, parts.length?parts.map(p=>p.minY).min():state[s.VIEW_CURR_Y])
-            .set(s.EDITED_SELECTION_PROPS, {title: editedSelection.title, isMarkup: editedSelection.isMarkup})
+            .set(s.EDITED_SELECTION_PROPS, {
+                title: editedSelection.title,
+                isMarkup: editedSelection.isMarkup,
+                tags,
+                allKnownTags,
+            })
     }
 
     function getSelectionHtmlId(selection) {
@@ -552,6 +564,12 @@ const BookView = ({openView,setPageTitle}) => {
                     onChange: (event,newValue) => updateEditedSelectionProps({prop: 'isMarkup', value: newValue})
                 }),
                 label:'markup'
+            }),
+            re(TagSelector,{
+                allKnownTags:[...state[s.EDITED_SELECTION_PROPS].allKnownTags,...state[s.EDITED_SELECTION_PROPS].tags].distinct(),
+                selectedTags:state[s.EDITED_SELECTION_PROPS].tags,
+                onTagRemoved: tag => updateEditedSelectionProps({prop: 'tags', value: state[s.EDITED_SELECTION_PROPS].tags.filter(t=>t!==tag)}),
+                onTagSelected: tag => updateEditedSelectionProps({prop: 'tags', value: [tag, ...state[s.EDITED_SELECTION_PROPS].tags]})
             })
         )
     }

@@ -86,6 +86,7 @@ const RE = {
     ButtonGroup: reFactory(MaterialUI.ButtonGroup),
     CircularProgress: reFactory(MaterialUI.CircularProgress),
     Checkbox: reFactory(MaterialUI.Checkbox),
+    Chip: reFactory(MaterialUI.Chip),
     Dialog: reFactory(MaterialUI.Dialog),
     DialogContent: reFactory(MaterialUI.DialogContent),
     DialogTitle: reFactory(MaterialUI.DialogTitle),
