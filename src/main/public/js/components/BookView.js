@@ -152,7 +152,7 @@ const BookView = ({openView,setPageTitle}) => {
             [s.SCROLL_SPEED]: getParam(s.SCROLL_SPEED, ss.SPEED_1),
             [s.FOCUSED_SELECTION_ID]: getParam(s.FOCUSED_SELECTION_ID, null),
             [s.SELECTIONS]: getParam(s.SELECTIONS, null),
-            [s.VIEW_MODE]: getParam(s.VIEW_MODE, vm.TREE),
+            [s.VIEW_MODE]: getParam(s.VIEW_MODE, vm.BOOK),
             [s.EXPANDED_NODE_IDS]: getParam(s.EXPANDED_NODE_IDS, []),
             [s.SEARCH_TEXT]: '',
             [s.SEARCH_TAGS]: [],
