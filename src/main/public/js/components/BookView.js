@@ -3,6 +3,7 @@
 const PARAGRAPH_SYMBOL = String.fromCharCode(167)
 const NAVIGATE_TO_PAGE_SYMBOL = String.fromCharCode(8883)
 const TARGET_SYMBOL = String.fromCharCode(8982)
+const NON_BREAKING_SPACE_SYMBOL = String.fromCharCode(160)
 const VIEW_HEIGHT_MIN = 500
 const VIEW_HEIGHT_MAX = 3000
 const VIEW_HEIGHT_PX_MIN = 300
@@ -28,7 +29,6 @@ const BookView = ({openView,setPageTitle}) => {
         EXPANDED_NODE_IDS: 'EXPANDED_NODE_IDS',
         FOCUSED_NODE_ID: 'FOCUSED_NODE_ID',
         SEARCH_TEXT: 'SEARCH_TEXT',
-        SEARCH_MATCH_SUBSTRING: 'SEARCH_MATCH_SUBSTRING',
     }
 
     //scroll speed
@@ -148,7 +148,6 @@ const BookView = ({openView,setPageTitle}) => {
             [s.VIEW_MODE]: getParam(s.VIEW_MODE, vm.TREE),
             [s.EXPANDED_NODE_IDS]: getParam(s.EXPANDED_NODE_IDS, []),
             [s.SEARCH_TEXT]: '',
-            [s.SEARCH_MATCH_SUBSTRING]: true,
             getFocusedSelection() {
                 return this[s.SELECTIONS][this.getIndexOfFocusedSelection()]
             },
@@ -648,18 +647,16 @@ const BookView = ({openView,setPageTitle}) => {
         )
     }
 
-    function createSearchRegex({searchString,isSubstring}) {
+    function createSearchRegex({searchString}) {
         const result = []
-        if (isSubstring) {
+        const searchParts = searchString.split(/\s+/)
+        for (let i = 0; i < searchParts.length; i++) {
             result.push('(.*)(')
-            result.push(searchString)
-            result.push(')')
-        } else {
-            for (let i = 0; i < searchString.length; i++) {
-                result.push('(.*)(')
-                result.push(`\\u${searchString.charCodeAt(i).toString(16).padStart(4,'0')}`)
-                result.push(')')
+            const searchPart = searchParts[i]
+            for (let j = 0; j < searchPart.length; j++) {
+                result.push(`\\u${searchPart.charCodeAt(j).toString(16).padStart(4,'0')}`)
             }
+            result.push(')')
         }
         result.push('(.*)')
         return result.join('')
@@ -731,7 +728,7 @@ const BookView = ({openView,setPageTitle}) => {
             if (hasNoValue(level) || !selection.isMarkup) {
                 const newNode = {id:selection.id,selection,children:[]}
                 if (searchRegex && selection.title) {
-                    const matchedAreas = findMatchedAreas({str:selection.title.toLowerCase(), regex:searchRegex})
+                    const matchedAreas = findMatchedAreas({str:selection.title, regex:searchRegex})
                     if (matchedAreas) {
                         newNode.matchedAreas = matchedAreas
                         roots.last().children.push(newNode)
@@ -745,7 +742,7 @@ const BookView = ({openView,setPageTitle}) => {
                 roots = roots.slice(0,level)
                 roots.push(newNode)
                 if (searchRegex && selection.title) {
-                    const matchedAreas = findMatchedAreas({str:selection.title.toLowerCase(), regex:searchRegex})
+                    const matchedAreas = findMatchedAreas({str:selection.title, regex:searchRegex})
                     if (matchedAreas) {
                         newNode.matchedAreas = matchedAreas
                     }
@@ -831,7 +828,7 @@ const BookView = ({openView,setPageTitle}) => {
                     autoFocus: true,
                     onChange: event => {
                         const newSearchText = event.nativeEvent.target.value
-                        setState(prev => prev.set(s.SEARCH_TEXT, newSearchText.trim().toLowerCase()))
+                        setState(prev => prev.set(s.SEARCH_TEXT, newSearchText))
                     },
                     onKeyUp: event =>
                         event.nativeEvent.keyCode == 13 ? expandAll()
@@ -840,13 +837,6 @@ const BookView = ({openView,setPageTitle}) => {
                     value: state[s.SEARCH_TEXT]
                 }
             ),
-            RE.FormControlLabel({
-                control: RE.Checkbox({
-                    checked: state[s.SEARCH_MATCH_SUBSTRING],
-                    onChange: (event,newValue) => setState(prev=>prev.set(s.SEARCH_MATCH_SUBSTRING, newValue))
-                }),
-                label:'substring'
-            }),
             RE.IconButton({onClick:cancelSearch},
                 RE.Icon({}, 'cancel')
             ),
@@ -869,7 +859,7 @@ const BookView = ({openView,setPageTitle}) => {
                         backgroundColor: i%2==0 ? 'Lime' : undefined
                     }
                 },
-                matchedAreas[i]
+                matchedAreas[i].replaceAll(' ', NON_BREAKING_SPACE_SYMBOL)
             ))
         }
         return result
@@ -880,8 +870,9 @@ const BookView = ({openView,setPageTitle}) => {
     }
 
     function renderTree() {
-        const searchRegex = state[s.SEARCH_TEXT].length
-            ? new RegExp(createSearchRegex({searchString:state[s.SEARCH_TEXT], isSubstring:state[s.SEARCH_MATCH_SUBSTRING]}))
+        const searchText = state[s.SEARCH_TEXT].trim()
+        const searchRegex = searchText.length
+            ? new RegExp(createSearchRegex({searchString:searchText}),'i')
             : null
         return RE.Container.col.top.left({},{style:{marginBottom: '15px'}},
             RE.Container.row.left.center({},{style:{marginRight: '15px'}},
