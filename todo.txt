@@ -1,4 +1,3 @@
-* render tags in the list of selections.
 * tree navigation with keys.
 
 * page dragging by mouse.

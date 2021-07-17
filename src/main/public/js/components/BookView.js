@@ -485,6 +485,17 @@ const BookView = ({openView,setPageTitle}) => {
         return `selection-${selection.id}`
     }
 
+    function renderReadonlyTags({tags}) {
+        return tags.map(tag => RE.Chip({
+            key:tag,
+            variant:'outlined',
+            color:'primary',
+            size:'small',
+            label: tag,
+            style: {marginRight:'5px'}
+        }))
+    }
+
     function renderSelectionsList() {
         const buttons = [[
             {iconName:"add", style:{}, onClick: addNewSelection},
@@ -511,6 +522,7 @@ const BookView = ({openView,setPageTitle}) => {
                         },
                         onClick: () => navigateToSelection({selection})
                     },
+                    renderReadonlyTags({tags:selection.tags??[]}),
                     `${selection.isMarkup?PARAGRAPH_SYMBOL+' ':''}${(!selection.parts?.length)?'[empty] ':''}${selection.title}`
                 ))
             )
