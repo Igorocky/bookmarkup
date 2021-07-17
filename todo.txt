@@ -1,7 +1,5 @@
 * tree navigation with keys.
 
 * page dragging by mouse.
-* show navigation buttons vertically.
-* add a search over the tree.
 * add a search over the selections list.
 * compress single selections with large empty spaces.
