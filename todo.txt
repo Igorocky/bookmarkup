@@ -1,7 +1,6 @@
 * tree navigation with keys.
 
 * page dragging by mouse.
-* increase size of bullets.
 * show navigation buttons vertically.
 * add a search over the tree.
 * add a search over the selections list.

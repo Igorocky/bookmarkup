@@ -1,7 +1,7 @@
 "use strict";
 
-const COLLAPSED_SIGN = String.fromCharCode(8901)
-const EXPANDED_SIGN = String.fromCharCode(8728)
+const COLLAPSED_SIGN = String.fromCharCode(8226)
+const EXPANDED_SIGN = String.fromCharCode(9711)
 
 function TreeView({tree, collapsedNodeRenderer, expandedNodeRenderer, showBullet, isExpanded, expandCollapse, focusedNodeId, setFocusedNodeId}) {
 
@@ -43,7 +43,7 @@ function TreeView({tree, collapsedNodeRenderer, expandedNodeRenderer, showBullet
                             expandCollapse(node.id)
                         }
                     },
-                    RE.td({style: {width:'8px'}},
+                    RE.td({style: {width:'10px',height:'25px',fontSize:expanded?'8px':'20px',fontWeight:'bold'}},
                         showBullet(node)?(expanded?EXPANDED_SIGN:COLLAPSED_SIGN):'',
                     ),
                     RE.td({},

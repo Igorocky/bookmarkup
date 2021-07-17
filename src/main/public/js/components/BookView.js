@@ -1,8 +1,13 @@
 "use strict";
 
 const PARAGRAPH_SYMBOL = String.fromCharCode(167)
-const NAVIGATE_TO_PAGE_SYMBOL = String.fromCharCode(8883)
-const TARGET_SYMBOL = String.fromCharCode(8982)
+
+// const NAVIGATE_TO_PAGE_SYMBOL = String.fromCharCode(8883)
+const NAVIGATE_TO_PAGE_SYMBOL = String.fromCharCode(8658)
+
+// const TARGET_SYMBOL = String.fromCharCode(8982)
+const TARGET_SYMBOL = String.fromCharCode(10753)
+
 const NON_BREAKING_SPACE_SYMBOL = String.fromCharCode(160)
 const VIEW_HEIGHT_MIN = 500
 const VIEW_HEIGHT_MAX = 3000
