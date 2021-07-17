@@ -17,7 +17,8 @@ interface BookMarkupConfig {
     imgDir: string,
     imgHash:string,
     actualImgHash:string,
-    selectionsFile: string
+    selectionsFile: string,
+    defaultTags: string,
 }
 
 interface AppConfig {

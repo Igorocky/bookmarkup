@@ -445,16 +445,17 @@ const BookView = ({openView,setPageTitle}) => {
         const editedSelection = state.getSelectionById(id)
         const parts = editedSelection.parts
         setSelectionsForImageSelector({selections: parts})
-        const tags = (editedSelection.tags??[]).distinct().sortBy((a,b)=>a<b)
-        const allKnownTags = state[s.SELECTIONS]
-            .filter(s=>s.tags?.length)
-            .flatMap(s=>s.tags)
-            .distinct()
-            .sortBy((a,b)=>a<b)
+        const tags = (editedSelection.tags ?? []).distinct().sortBy((a, b) => a < b)
+        const allKnownTags = [
+            ...state[s.BOOK].defaultTags??[],
+            ...state[s.SELECTIONS]
+                .filter(s => s.tags?.length)
+                .flatMap(s => s.tags)
+        ].distinct().sortBy((a, b) => a < b)
         return state
             .set(s.EDIT_MODE, true)
             .set(s.FOCUSED_SELECTION_ID, id)
-            .set(s.VIEW_CURR_Y, parts.length?parts.map(p=>p.minY).min():state[s.VIEW_CURR_Y])
+            .set(s.VIEW_CURR_Y, parts.length ? parts.map(p => p.minY).min() : state[s.VIEW_CURR_Y])
             .set(s.EDITED_SELECTION_PROPS, {
                 title: editedSelection.title,
                 isMarkup: editedSelection.isMarkup,
