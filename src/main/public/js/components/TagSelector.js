@@ -1,10 +1,10 @@
 'use strict';
 
-const TagSelector = ({allKnownTags,selectedTags,onTagRemoved,onTagSelected}) => {
+const TagSelector = ({allKnownTags,selectedTags,onTagRemoved,onTagSelected,renderTextField = true}) => {
     const [editedTag, setEditedTag] = useState('')
 
     return RE.Fragment({},
-        RE.TextField(
+        renderTextField?RE.TextField(
             {
                 variant: 'outlined', label: 'Tag',
                 style: {width: '100px'},
@@ -25,7 +25,7 @@ const TagSelector = ({allKnownTags,selectedTags,onTagRemoved,onTagSelected}) => 
                 },
                 value: editedTag
             }
-        ),
+        ):null,
         allKnownTags.map(tag => RE.Chip({
             key:tag,
             variant:'outlined',

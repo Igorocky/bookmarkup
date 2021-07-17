@@ -29,6 +29,7 @@ const BookView = ({openView,setPageTitle}) => {
         EXPANDED_NODE_IDS: 'EXPANDED_NODE_IDS',
         FOCUSED_NODE_ID: 'FOCUSED_NODE_ID',
         SEARCH_TEXT: 'SEARCH_TEXT',
+        SEARCH_TAGS: 'SEARCH_TAGS',
     }
 
     //scroll speed
@@ -146,9 +147,10 @@ const BookView = ({openView,setPageTitle}) => {
             [s.SCROLL_SPEED]: getParam(s.SCROLL_SPEED, ss.SPEED_1),
             [s.FOCUSED_SELECTION_ID]: getParam(s.FOCUSED_SELECTION_ID, null),
             [s.SELECTIONS]: getParam(s.SELECTIONS, null),
-            [s.VIEW_MODE]: getParam(s.VIEW_MODE, vm.BOOK),
+            [s.VIEW_MODE]: getParam(s.VIEW_MODE, vm.TREE),
             [s.EXPANDED_NODE_IDS]: getParam(s.EXPANDED_NODE_IDS, []),
             [s.SEARCH_TEXT]: '',
+            [s.SEARCH_TAGS]: [],
             getFocusedSelection() {
                 return this[s.SELECTIONS][this.getIndexOfFocusedSelection()]
             },
@@ -441,17 +443,21 @@ const BookView = ({openView,setPageTitle}) => {
         })
     }
 
-    function editSelection({id, state}) {
-        const editedSelection = state.getSelectionById(id)
-        const parts = editedSelection.parts
-        setSelectionsForImageSelector({selections: parts})
-        const tags = (editedSelection.tags ?? []).distinct().sortBy((a, b) => a < b)
-        const allKnownTags = [
+    function getAllKnownTags() {
+        return [
             ...state[s.BOOK].defaultTags??[],
             ...state[s.SELECTIONS]
                 .filter(s => s.tags?.length)
                 .flatMap(s => s.tags)
-        ].distinct().sortBy((a, b) => a < b)
+        ].distinct().sortBy(a=>a)
+    }
+
+    function editSelection({id, state}) {
+        const editedSelection = state.getSelectionById(id)
+        const parts = editedSelection.parts
+        setSelectionsForImageSelector({selections: parts})
+        const tags = (editedSelection.tags ?? []).distinct().sortBy(a=>a)
+
         return state
             .set(s.EDIT_MODE, true)
             .set(s.FOCUSED_SELECTION_ID, id)
@@ -460,7 +466,7 @@ const BookView = ({openView,setPageTitle}) => {
                 title: editedSelection.title,
                 isMarkup: editedSelection.isMarkup,
                 tags,
-                allKnownTags,
+                allKnownTags:getAllKnownTags(),
             })
     }
 
@@ -714,13 +720,13 @@ const BookView = ({openView,setPageTitle}) => {
             children: tree.children.map(ch => {
                 if (ch.selection?.isMarkup) {
                     const newCh = removeNotMatchedNodes({tree:ch})
-                    if (newCh.children.length || newCh.matchedAreas) {
+                    if (newCh.children.length || isMatchedNode(newCh)) {
                         return newCh
                     } else {
                         return null
                     }
                 } else {
-                    return ch.matchedAreas ? ch : null
+                    return isMatchedNode(ch) ? ch : null
                 }
             })
         }
@@ -728,7 +734,22 @@ const BookView = ({openView,setPageTitle}) => {
         return newTree
     }
 
-    function createTree({selections,searchRegex}) {
+    function findMatchedTags({selection,tagsToFind}) {
+        const tags = selection.tags??[]
+        const matchedTags = []
+        for (const tag of tags) {
+            if (tagsToFind.includes(tag)) {
+                matchedTags.push(tag)
+            }
+        }
+        return matchedTags.length ? matchedTags : undefined
+    }
+
+    function isMatchedNode(node) {
+        return node.matchedAreas || node.matchedTags
+    }
+
+    function createTree({selections,searchRegex,searchTags}) {
         function getLevel(selection) {
             if (selection.isMarkup) {
                 const split1 = selection.title?.split(' ')
@@ -744,31 +765,28 @@ const BookView = ({openView,setPageTitle}) => {
         let roots = [{id:ROOT_NODE_ID,selection:{title:state[s.BOOK].title, isMarkup:true}, children:[]}]
         for (let selection of selections) {
             const level = Math.min(roots.length, getLevel(selection))
+            const newNode = {id:selection.id,selection,children:[]}
             if (hasNoValue(level) || !selection.isMarkup) {
-                const newNode = {id:selection.id,selection,children:[]}
-                if (searchRegex && selection.title) {
-                    const matchedAreas = findMatchedAreas({str:selection.title, regex:searchRegex})
-                    if (matchedAreas) {
-                        newNode.matchedAreas = matchedAreas
-                        roots.last().children.push(newNode)
-                    }
-                } else {
-                    roots.last().children.push(newNode)
-                }
+                roots.last().children.push(newNode)
             } else {
-                const newNode = {id:selection.id,selection,children:[]}
                 roots[level-1].children.push(newNode)
                 roots = roots.slice(0,level)
                 roots.push(newNode)
-                if (searchRegex && selection.title) {
-                    const matchedAreas = findMatchedAreas({str:selection.title, regex:searchRegex})
-                    if (matchedAreas) {
-                        newNode.matchedAreas = matchedAreas
-                    }
+            }
+            if (searchRegex && selection.title) {
+                const matchedAreas = findMatchedAreas({str:selection.title, regex:searchRegex})
+                if (matchedAreas) {
+                    newNode.matchedAreas = matchedAreas
+                }
+            }
+            if (searchTags?.length && selection.tags?.length) {
+                const matchedTags = findMatchedTags({selection, tagsToFind:searchTags})
+                if (matchedTags) {
+                    newNode.matchedTags = matchedTags
                 }
             }
         }
-        const tree = searchRegex?removeNotMatchedNodes({tree:roots[0]}):roots[0]
+        const tree = (searchRegex || searchTags)?removeNotMatchedNodes({tree:roots[0]}):roots[0]
         return tree
     }
 
@@ -803,7 +821,10 @@ const BookView = ({openView,setPageTitle}) => {
     }
 
     function cancelSearch() {
-        setState(prev=>prev.set(s.SEARCH_TEXT,''))
+        setState(prev=>prev
+            .set(s.SEARCH_TEXT,'')
+            .set(s.SEARCH_TAGS,[])
+        )
     }
 
     function expandAll() {
@@ -840,6 +861,15 @@ const BookView = ({openView,setPageTitle}) => {
 
     function renderSearchControls() {
         return [
+            RE.IconButton({onClick:expandAll},
+                RE.Icon({}, 'unfold_more')
+            ),
+            RE.IconButton({onClick:collapseAllButFocused},
+                RE.Icon({}, 'unfold_less')
+            ),
+            RE.IconButton({onClick:cancelSearch},
+                RE.Icon({}, 'cancel')
+            ),
             RE.TextField(
                 {
                     variant: 'outlined', label: 'Title',
@@ -856,16 +886,33 @@ const BookView = ({openView,setPageTitle}) => {
                     value: state[s.SEARCH_TEXT]
                 }
             ),
-            RE.IconButton({onClick:cancelSearch},
-                RE.Icon({}, 'cancel')
-            ),
-            RE.IconButton({onClick:expandAll},
-                RE.Icon({}, 'unfold_more')
-            ),
-            RE.IconButton({onClick:collapseAllButFocused},
-                RE.Icon({}, 'unfold_less')
-            )
+            re(TagSelector,{
+                renderTextField:false,
+                allKnownTags:getAllKnownTags(),
+                selectedTags:state[s.SEARCH_TAGS],
+                onTagRemoved: tag => setState(prev=>prev.set(s.SEARCH_TAGS,state[s.SEARCH_TAGS].filter(t => t!==tag))),
+                onTagSelected: tag => {
+                    setState(prev=>prev.set(s.SEARCH_TAGS,[...state[s.SEARCH_TAGS], tag]))
+                    expandAll()
+                },
+            })
         ]
+    }
+
+    function renderMatchedTags({key, matchedTags}) {
+        return matchedTags.sortBy(a=>a).map(tag => RE.span(
+            {
+                key:`matched-tag-${key}-${tag}`,
+                style:{
+                    backgroundColor: 'DarkOliveGreen',
+                    color:'white',
+                    marginRight:'5px',
+                    borderRadius:'12px',
+                    padding:'3px'
+                }
+            },
+            tag
+        ))
     }
 
     function renderMatchedAreas({key, matchedAreas}) {
@@ -873,7 +920,7 @@ const BookView = ({openView,setPageTitle}) => {
         for (let i = 0; i < matchedAreas.length; i++) {
             result.push(RE.span(
                 {
-                    key:`${key}-${i}`,
+                    key:`matched-area-${key}-${i}`,
                     style:{
                         backgroundColor: i%2==0 ? 'Lime' : undefined
                     }
@@ -893,14 +940,20 @@ const BookView = ({openView,setPageTitle}) => {
         const searchRegex = searchText.length
             ? new RegExp(createSearchRegex({searchString:searchText}),'i')
             : null
+        const searchTags = state[s.SEARCH_TAGS]
         return RE.Container.col.top.left({},{style:{marginBottom: '15px'}},
             RE.Container.row.left.center({},{style:{marginRight: '15px'}},
                 renderViewModeSelector(),
                 renderSearchControls(),
             ),
             re(TreeView,{
-                tree: createTree({selections:state[s.SELECTIONS], searchRegex}),
+                tree: createTree({
+                    selections:state[s.SELECTIONS],
+                    searchRegex,
+                    searchTags: searchTags.length?searchTags:null
+                }),
                 collapsedNodeRenderer: node => RE.Container.row.left.center({},{},
+                    renderMatchedTags({key:node.id,matchedTags:node.matchedTags??[]}),
                     node.matchedAreas?renderMatchedAreas({key:node.id,matchedAreas:node.matchedAreas}):node.selection?.title,
                     RE.span(
                         {
