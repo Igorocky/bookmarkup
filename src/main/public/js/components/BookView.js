@@ -448,12 +448,18 @@ const BookView = ({openView,setPageTitle}) => {
         })
     }
 
+    function getAllUsedTags() {
+        return state[s.SELECTIONS]
+            .filter(s => s.tags?.length)
+            .flatMap(s => s.tags)
+            .distinct()
+            .sortBy(a=>a)
+    }
+
     function getAllKnownTags() {
         return [
             ...state[s.BOOK].defaultTags??[],
-            ...state[s.SELECTIONS]
-                .filter(s => s.tags?.length)
-                .flatMap(s => s.tags)
+            ...getAllUsedTags()
         ].distinct().sortBy(a=>a)
     }
 
@@ -830,6 +836,7 @@ const BookView = ({openView,setPageTitle}) => {
             .set(s.SEARCH_TEXT,'')
             .set(s.SEARCH_TAGS,[])
         )
+        collapseAllButFocused()
     }
 
     function expandAll() {
@@ -893,7 +900,7 @@ const BookView = ({openView,setPageTitle}) => {
             ),
             re(TagSelector,{
                 renderTextField:false,
-                allKnownTags:getAllKnownTags(),
+                allKnownTags:getAllUsedTags(),
                 selectedTags:state[s.SEARCH_TAGS],
                 onTagRemoved: tag => setState(prev=>prev.set(s.SEARCH_TAGS,state[s.SEARCH_TAGS].filter(t => t!==tag))),
                 onTagSelected: tag => {
@@ -940,6 +947,11 @@ const BookView = ({openView,setPageTitle}) => {
         setState(prev=>prev.set(s.FOCUSED_NODE_ID,id))
     }
 
+    function navigateToSelectionFromTree({selection}) {
+        navigateToSelection({selection})
+        focusNode({id:selection.id})
+    }
+
     function renderTree() {
         const searchText = state[s.SEARCH_TEXT].trim()
         const searchRegex = searchText.length
@@ -977,7 +989,7 @@ const BookView = ({openView,setPageTitle}) => {
                             className: 'navigate-to-page',
                             onClick: e => {
                                 e.stopPropagation();
-                                (node.selection?.id)?navigateToSelection({selection: node.selection}):null
+                                (node.selection?.id)?navigateToSelectionFromTree({selection: node.selection}):null
                             }
                         },
                         (hasValue(node.selection?.id))?NAVIGATE_TO_PAGE_SYMBOL:''
@@ -990,7 +1002,7 @@ const BookView = ({openView,setPageTitle}) => {
                 isExpanded,
                 expandCollapse,
                 focusedNodeId:state[s.FOCUSED_NODE_ID],
-                setFocusedNodeId:id=>setState(prev=>prev.set(s.FOCUSED_NODE_ID, id))
+                setFocusedNodeId:id=>focusNode({id})
             })
         )
     }
