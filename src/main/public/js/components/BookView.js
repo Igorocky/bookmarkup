@@ -2,11 +2,13 @@
 
 const PARAGRAPH_SYMBOL = String.fromCharCode(167)
 const NAVIGATE_TO_PAGE_SYMBOL = String.fromCharCode(8883)
+const TARGET_SYMBOL = String.fromCharCode(8982)
 const VIEW_HEIGHT_MIN = 500
 const VIEW_HEIGHT_MAX = 3000
 const VIEW_HEIGHT_PX_MIN = 300
 const VIEW_HEIGHT_PX_MAX = 3000
 const LIST_OF_SELECTIONS_ID = 'list-of-selections'
+const ROOT_NODE_ID = -1
 
 const BookView = ({openView,setPageTitle}) => {
     const {renderSelectedArea} = SelectedAreaRenderer()
@@ -710,7 +712,7 @@ const BookView = ({openView,setPageTitle}) => {
         return newTree
     }
 
-    function createTree({selections}) {
+    function createTree({selections,searchRegex}) {
         function getLevel(selection) {
             if (selection.isMarkup) {
                 const split1 = selection.title?.split(' ')
@@ -723,11 +725,7 @@ const BookView = ({openView,setPageTitle}) => {
                 return undefined
             }
         }
-        let roots = [{selection:{title:state[s.BOOK].title, isMarkup:true}, children:[]}]
-        const trimmedSearchText = state[s.SEARCH_TEXT].trim().toLowerCase()
-        const searchRegex = trimmedSearchText.length
-            ? new RegExp(createSearchRegex({searchString:trimmedSearchText, isSubstring:state[s.SEARCH_MATCH_SUBSTRING]}))
-            : null
+        let roots = [{id:ROOT_NODE_ID,selection:{title:state[s.BOOK].title, isMarkup:true}, children:[]}]
         for (let selection of selections) {
             const level = Math.min(roots.length, getLevel(selection))
             if (hasNoValue(level) || !selection.isMarkup) {
@@ -792,6 +790,38 @@ const BookView = ({openView,setPageTitle}) => {
         setState(prev=>prev.set(s.SEARCH_TEXT,''))
     }
 
+    function expandAll() {
+        setState(prev=>prev.set(s.EXPANDED_NODE_IDS, [ROOT_NODE_ID,...prev[s.SELECTIONS].filter(s=>s.isMarkup).map(s=>s.id)]))
+    }
+
+    function collapseAllButFocused() {
+        function findPath({tree, matcher, parentPath = []}) {
+            const currPath = [...parentPath, tree]
+            if (matcher(tree)) {
+                return currPath
+            } else {
+                for (let child of tree.children) {
+                    const foundPath = findPath({tree:child,matcher,parentPath:currPath})
+                    if (foundPath?.length > currPath.length) {
+                        return foundPath
+                    }
+                }
+                return undefined
+            }
+        }
+
+        const focusedNodeId = state[s.FOCUSED_NODE_ID]
+        let newExpandedNodeIds = []
+        if (hasValue(focusedNodeId)) {
+            const tree = createTree({selections:state[s.SELECTIONS]})
+            const pathToFocusedNode = findPath({tree,matcher:({id}) => id==focusedNodeId})
+            if (pathToFocusedNode) {
+                newExpandedNodeIds = pathToFocusedNode.removeAtIdx(pathToFocusedNode.length-1).map(({id}) => id)
+            }
+        }
+        setState(prev=>prev.set(s.EXPANDED_NODE_IDS,newExpandedNodeIds))
+    }
+
     function renderSearchControls() {
         return [
             RE.TextField(
@@ -801,17 +831,14 @@ const BookView = ({openView,setPageTitle}) => {
                     autoFocus: true,
                     onChange: event => {
                         const newSearchText = event.nativeEvent.target.value
-                        setState(prev => prev.set(s.SEARCH_TEXT, newSearchText))
+                        setState(prev => prev.set(s.SEARCH_TEXT, newSearchText.trim().toLowerCase()))
                     },
                     onKeyUp: event =>
-                        event.nativeEvent.keyCode == 13 ? setState(prev=>prev.set(s.SEARCH_EXPAND_ALL, true))
+                        event.nativeEvent.keyCode == 13 ? expandAll()
                             : event.nativeEvent.keyCode == 27 ? cancelSearch()
                             : null,
                     value: state[s.SEARCH_TEXT]
                 }
-            ),
-            RE.IconButton({onClick:cancelSearch},
-                RE.Icon({}, 'cancel')
             ),
             RE.FormControlLabel({
                 control: RE.Checkbox({
@@ -819,7 +846,16 @@ const BookView = ({openView,setPageTitle}) => {
                     onChange: (event,newValue) => setState(prev=>prev.set(s.SEARCH_MATCH_SUBSTRING, newValue))
                 }),
                 label:'substring'
-            })
+            }),
+            RE.IconButton({onClick:cancelSearch},
+                RE.Icon({}, 'cancel')
+            ),
+            RE.IconButton({onClick:expandAll},
+                RE.Icon({}, 'unfold_more')
+            ),
+            RE.IconButton({onClick:collapseAllButFocused},
+                RE.Icon({}, 'unfold_less')
+            )
         ]
     }
 
@@ -839,16 +875,34 @@ const BookView = ({openView,setPageTitle}) => {
         return result
     }
 
+    function focusNode({id}) {
+        setState(prev=>prev.set(s.FOCUSED_NODE_ID,id))
+    }
+
     function renderTree() {
+        const searchRegex = state[s.SEARCH_TEXT].length
+            ? new RegExp(createSearchRegex({searchString:state[s.SEARCH_TEXT], isSubstring:state[s.SEARCH_MATCH_SUBSTRING]}))
+            : null
         return RE.Container.col.top.left({},{style:{marginBottom: '15px'}},
             RE.Container.row.left.center({},{style:{marginRight: '15px'}},
                 renderViewModeSelector(),
                 renderSearchControls(),
             ),
             re(TreeView,{
-                tree: createTree({selections:state[s.SELECTIONS]}),
+                tree: createTree({selections:state[s.SELECTIONS], searchRegex}),
                 collapsedNodeRenderer: node => RE.Container.row.left.center({},{},
                     node.matchedAreas?renderMatchedAreas({key:node.id,matchedAreas:node.matchedAreas}):node.selection?.title,
+                    RE.span(
+                        {
+                            style: {marginLeft: '10px'},
+                            className: 'focus-this-node',
+                            onClick: e => {
+                                e.stopPropagation();
+                                (hasValue(node?.id))?focusNode({id: node.id}):null
+                            }
+                        },
+                        (node.selection?.id)?TARGET_SYMBOL:''
+                    ),
                     RE.span(
                         {
                             style: {marginLeft: '10px'},
@@ -858,7 +912,7 @@ const BookView = ({openView,setPageTitle}) => {
                                 (node.selection?.id)?navigateToSelection({selection: node.selection}):null
                             }
                         },
-                        (node.selection?.id)?NAVIGATE_TO_PAGE_SYMBOL:''
+                        (hasValue(node.selection?.id))?NAVIGATE_TO_PAGE_SYMBOL:''
                     )
                 ),
                 expandedNodeRenderer: node => (node.selection?.isMarkup??false) || !node.selection
