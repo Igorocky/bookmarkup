@@ -10,7 +10,7 @@ function Pagination({pageNumShift,numOfPages,curIdx,onChange}) {
                 size: 'small',
                 onKeyDown: ({nativeEvent:event}) => {
                     if (event.keyCode == 13) {
-                        const newPageNumStr = event.target.value?.replaceAll(/\D/g,'')
+                        const newPageNumStr = event.target.value?.trim()
                         if (newPageNumStr.length) {
                             const newIdx = Math.max(0, Math.min(numOfPages-1, parseInt(newPageNumStr)-pageNumShift))
                             if (newIdx != curIdx) {
