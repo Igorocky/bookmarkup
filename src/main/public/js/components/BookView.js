@@ -649,9 +649,15 @@ const BookView = ({openView,setPageTitle}) => {
     }
 
     function renderPages() {
-        const {svgContent:viewableContentSvgContent, boundaries:viewableContentBoundaries} = renderViewableContent({})
+        const dScreenY = -(state[s.EDIT_MODE]?180:0)
+        const dBookY = dScreenY/viewHeightPx*viewHeight
 
-        const height = viewHeightPx
+        const {svgContent:viewableContentSvgContent, boundaries:viewableContentBoundaries} = renderViewableContent({
+            minY: state[s.VIEW_CURR_Y],
+            maxY: state[s.VIEW_CURR_Y] + viewHeight + dBookY,
+        })
+
+        const height = viewHeightPx + dScreenY
         const width = height * (viewableContentBoundaries.width()/viewableContentBoundaries.height())
         return RE.Container.col.top.left({},{},
             RE.Container.row.left.center({},{style:{marginRight:'20px'}},
