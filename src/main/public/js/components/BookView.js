@@ -499,7 +499,7 @@ const BookView = ({openView,setPageTitle}) => {
     function renderSelectionsList() {
         const buttons = [[
             {iconName:"add", style:{}, onClick: addNewSelection},
-            {iconName:"settings", style:{}, disabled: !state[s.SELECTIONS].length, onClick: () => setState(editSelection({id:state[s.FOCUSED_SELECTION_ID], state}))},
+            {iconName:"edit", style:{}, disabled: !state[s.SELECTIONS].length, onClick: () => setState(editSelection({id:state[s.FOCUSED_SELECTION_ID], state}))},
             {iconName:"delete_forever", style:{}, disabled: !state[s.SELECTIONS].length, onClick: deleteSelection},
         ]]
 
