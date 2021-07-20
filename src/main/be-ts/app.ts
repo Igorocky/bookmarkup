@@ -7,7 +7,7 @@ import path from "path"
 loadAppConfig(argsParser(process.argv).config).then(() => {
     const app = express()
     const port = 3000
-    app.use(express.json())
+    app.use(express.json({limit:'100MB'}))
 
     app.post('/rpc/:methodName', (req,res) => {
         const methodName = req.params.methodName
