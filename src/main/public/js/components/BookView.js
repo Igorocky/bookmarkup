@@ -423,11 +423,12 @@ const BookView = ({openView,setPageTitle}) => {
         })
     }
 
-    function addNewSelection() {
+    function addNewSelection({title = '', tags = []}) {
         const newSelection = {
             id: (state[s.SELECTIONS].map(e => e.id).max()??0) + 1,
-            title: '',
-            parts: []
+            title,
+            parts: [],
+            tags
         }
         const newSelections = [
             newSelection,
@@ -496,10 +497,18 @@ const BookView = ({openView,setPageTitle}) => {
         }))
     }
 
+    function duplicateSelection({selection}) {
+        addNewSelection({
+            title: selection.title,
+            tags: [...(selection.tags??[])]
+        })
+    }
+
     function renderSelectionsList() {
         const buttons = [[
-            {iconName:"add", style:{}, onClick: addNewSelection},
+            {iconName:"add", style:{}, onClick: () => addNewSelection({})},
             {iconName:"edit", style:{}, disabled: !state[s.SELECTIONS].length, onClick: () => setState(editSelection({id:state[s.FOCUSED_SELECTION_ID], state}))},
+            {iconName:"content_copy", style:{}, disabled: hasNoValue(state[s.FOCUSED_SELECTION_ID]), onClick: () => duplicateSelection({selection:state.getFocusedSelection()})},
             {icon:RE.Icon({style:{transform: "rotate(-90deg)"}}, "skip_previous"), style:{}, disabled:!state[s.SELECTIONS].length, onClick: () => {
                     const lastSelection = state[s.SELECTIONS].last()
                     navigateToSelection({selection: lastSelection})
