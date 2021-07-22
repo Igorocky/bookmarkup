@@ -500,6 +500,11 @@ const BookView = ({openView,setPageTitle}) => {
         const buttons = [[
             {iconName:"add", style:{}, onClick: addNewSelection},
             {iconName:"edit", style:{}, disabled: !state[s.SELECTIONS].length, onClick: () => setState(editSelection({id:state[s.FOCUSED_SELECTION_ID], state}))},
+            {icon:RE.Icon({style:{transform: "rotate(-90deg)"}}, "skip_previous"), style:{}, disabled:!state[s.SELECTIONS].length, onClick: () => {
+                    const lastSelection = state[s.SELECTIONS].last()
+                    navigateToSelection({selection: lastSelection})
+                    scrollSelectionsListToSelection({selection: lastSelection})
+            }},
             {iconName:"delete_forever", style:{}, disabled: !state[s.SELECTIONS].length, onClick: deleteSelection},
         ]]
 
@@ -547,6 +552,11 @@ const BookView = ({openView,setPageTitle}) => {
         }
     }
 
+    function scrollSelectionsListToSelection({selection}) {
+        const selectionDiv = document.getElementById(getSelectionHtmlId(selection))
+        document.getElementById(LIST_OF_SELECTIONS_ID).scrollTop = selectionDiv.offsetTop
+    }
+
     function clickHandler(clickImageX, clickImageY, nativeEvent) {
         if (!state[s.EDIT_MODE]) {
             if (nativeEvent.type === 'mouseup') {
@@ -554,8 +564,7 @@ const BookView = ({openView,setPageTitle}) => {
                 const clickedSelection = state[s.SELECTIONS].find(sel => sel.parts?.some(p => p.includesPoint(clickedPoint)))
                 if (clickedSelection) {
                     setState(prev => prev.set(s.FOCUSED_SELECTION_ID, clickedSelection.id))
-                    const selectionDiv = document.getElementById(getSelectionHtmlId(clickedSelection))
-                    document.getElementById(LIST_OF_SELECTIONS_ID).scrollTop = selectionDiv.offsetTop
+                    scrollSelectionsListToSelection({selection:clickedSelection})
                 }
             }
         } else {
