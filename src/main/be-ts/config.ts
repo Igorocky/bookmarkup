@@ -18,6 +18,7 @@ interface BookMarkupConfig {
     imgHash:string,
     actualImgHash:string,
     selectionsFile: string,
+    repeatGroupsFile: string,
     defaultTags: string,
 }
 
@@ -51,6 +52,7 @@ async function loadAppConfig(configFilePath:string): Promise<void> {
         ...m,
         bookFile: toAbsolutePath(m.bookFile),
         selectionsFile: toAbsolutePath(m.selectionsFile),
+        repeatGroupsFile: toAbsolutePath(m.repeatGroupsFile),
         imgDir: toAbsolutePath(m.imgDir),
     }))
     appConfig.markupsById = appConfig.markups.reduce((prev,curr)=>({...prev,[curr.id]:curr}), {})

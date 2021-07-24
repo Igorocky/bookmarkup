@@ -84,6 +84,7 @@ const RE = {
     AppBar: reFactory(MaterialUI.AppBar),
     Button: reFactory(MaterialUI.Button),
     ButtonGroup: reFactory(MaterialUI.ButtonGroup),
+    Breadcrumbs: reFactory(MaterialUI.Breadcrumbs),
     CircularProgress: reFactory(MaterialUI.CircularProgress),
     Checkbox: reFactory(MaterialUI.Checkbox),
     Chip: reFactory(MaterialUI.Chip),

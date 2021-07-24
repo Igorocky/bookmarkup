@@ -27,8 +27,10 @@ const be = {
     getEnvironmentName: () => callBe('getEnvironmentName',{}),
     getBook: (bookId) => callBe('getBook',{bookId}),
     getSelections: (bookId) => callBe('getSelections',{bookId}),
+    getRepeatGroups: (bookId) => callBe('getRepeatGroups',{bookId}),
     listAvailableBooks: () => callBe('listAvailableBooks',{}),
     saveSelections: ({bookId,selections}) => callBe('saveSelections',{bookId,selections}),
+    saveRepeatGroups: ({bookId,repeatGroups}) => callBe('saveRepeatGroups',{bookId,repeatGroups}),
 }
 
 function hasValue(variable) {

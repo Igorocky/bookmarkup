@@ -4,7 +4,7 @@ import childProcess from 'child_process'
 import {appConfig} from './config'
 import path from "path"
 
-export {getBook, saveSelections, listAvailableBooks, getSelections}
+export {getBook, saveSelections, saveRepeatGroups, listAvailableBooks, getSelections, getRepeatGroups}
 
 const readFile = util.promisify(fs.readFile)
 const writeFile = util.promisify(fs.writeFile)
@@ -19,6 +19,15 @@ async function getBook({bookId}: { bookId: string }): Promise<any> {
     return {title:markup.title, defaultTags:markup.defaultTags, ...JSON.parse(buffer)}
 }
 
+async function getRepeatGroups({bookId}: { bookId: string }): Promise<any> {
+    const markup = appConfig.markupsById[bookId]
+    if (!markup) {
+        throw new Error(`Could not find a book with id ${bookId}`)
+    }
+    const buffer = await readFile(markup.repeatGroupsFile, 'UTF-8')
+    return JSON.parse(buffer)
+}
+
 async function getSelections({bookId}: { bookId: string }): Promise<any> {
     const markup = appConfig.markupsById[bookId]
     if (!markup) {
@@ -29,17 +38,24 @@ async function getSelections({bookId}: { bookId: string }): Promise<any> {
 }
 
 async function saveSelections({bookId, selections}:{bookId:string, selections:string}) {
-    const selectionsFilePath = appConfig.markupsById[bookId].selectionsFile
-    if (selectionsFilePath) {
+    return await saveDataToFile({data:selections, filePath:appConfig.markupsById[bookId].selectionsFile})
+}
+
+async function saveRepeatGroups({bookId, repeatGroups}:{bookId:string, repeatGroups:string}) {
+    return await saveDataToFile({data:repeatGroups, filePath:appConfig.markupsById[bookId].repeatGroupsFile})
+}
+
+async function saveDataToFile({data, filePath}:{data:string, filePath:string}) {
+    if (filePath) {
         try {
-            await saveAndCommit({filePath:selectionsFilePath,data:selections})
+            await saveAndCommit({filePath,data})
             return {status:'ok'}
         } catch (err) {
             console.log({err})
             return {status:'error', msg: err.message}
         }
     } else {
-        return {status:'error', msg: 'selectionsFilePath not found'}
+        return {status:'error', msg: 'filePath is not specified'}
     }
 }
 

@@ -8,6 +8,8 @@ const NAVIGATE_TO_PAGE_SYMBOL = String.fromCharCode(8658)
 // const TARGET_SYMBOL = String.fromCharCode(8982)
 const TARGET_SYMBOL = String.fromCharCode(10753)
 
+const REPEAT_SYMBOL = String.fromCharCode(8635)
+
 const NON_BREAKING_SPACE_SYMBOL = String.fromCharCode(160)
 const VIEW_HEIGHT_MIN = 500
 const VIEW_HEIGHT_MAX = 3000
@@ -35,6 +37,7 @@ const BookView = ({openView,setPageTitle}) => {
         FOCUSED_NODE_ID: 'FOCUSED_NODE_ID',
         SEARCH_TEXT: 'SEARCH_TEXT',
         SEARCH_TAGS: 'SEARCH_TAGS',
+        REPEAT_GROUPS: 'REPEAT_GROUPS',
     }
 
     //scroll speed
@@ -48,6 +51,23 @@ const BookView = ({openView,setPageTitle}) => {
     const vm = {
         BOOK: 'BOOK',
         TREE: 'TREE',
+        REPEAT: 'REPEAT',
+    }
+
+    //repeat groups props
+    const rg = {
+        COLLECTIONS: 'COLLECTIONS',
+        SELECTED_COLLECTION_IDX: 'SELECTED_COLLECTION_IDX',
+
+        COLLECTION_NAME: 'COLLECTION_NAME',
+        COLLECTION_PATH_ELEMS: 'COLLECTION_PATH_ELEMS',
+        COLLECTION_SELECTED_CARD_IDX: 'COLLECTION_SELECTED_CARD_IDX',
+        COLLECTION_COUNTS: 'COLLECTION_COUNTS',
+        COLLECTION_CARDS: 'COLLECTION_CARDS',
+        COLLECTION_OPENED_SELECTION_IDS: 'COLLECTION_OPENED_SELECTION_IDS',
+
+        COLLECTION_CARD_PATH: 'COLLECTION_CARD_PATH',
+        COLLECTION_CARD_SELECTION_IDS: 'COLLECTION_CARD_SELECTION_IDS',
     }
 
     const query = useQuery()
@@ -114,11 +134,12 @@ const BookView = ({openView,setPageTitle}) => {
     useEffect(() => {
         Promise.all([
             be.getBook(bookId),
-            be.getSelections(bookId)
+            be.getSelections(bookId),
+            be.getRepeatGroups(bookId),
         ]).then(loadBook)
     }, [])
 
-    function loadBook([book, selections]) {
+    function loadBook([book, selections, repeatGroups]) {
         let y = 0
         for (let page of book.pages) {
             page.y1 = y
@@ -133,11 +154,12 @@ const BookView = ({openView,setPageTitle}) => {
             overallBoundaries: s.overallBoundaries?new SvgBoundaries(s.overallBoundaries):undefined
         }))
 
-        setState(prev => state
+        setState(prev => prev
             .set(s.VIEW_MAX_Y, book.maxY-viewHeight)
             .set(s.BOOK, book)
             .set(s.SELECTIONS, selections)
             .set(s.FOCUSED_SELECTION_ID, selections[0]?.id??1)
+            .set(s.REPEAT_GROUPS, repeatGroups)
         )
         setPageTitle(book.title)
         setReady(true)
@@ -152,7 +174,7 @@ const BookView = ({openView,setPageTitle}) => {
             [s.SCROLL_SPEED]: getParam(s.SCROLL_SPEED, ss.SPEED_1),
             [s.FOCUSED_SELECTION_ID]: getParam(s.FOCUSED_SELECTION_ID, null),
             [s.SELECTIONS]: getParam(s.SELECTIONS, null),
-            [s.VIEW_MODE]: getParam(s.VIEW_MODE, vm.BOOK),
+            [s.VIEW_MODE]: getParam(s.VIEW_MODE, vm.TREE),
             [s.EXPANDED_NODE_IDS]: getParam(s.EXPANDED_NODE_IDS, []),
             [s.SEARCH_TEXT]: '',
             [s.SEARCH_TAGS]: [],
@@ -184,6 +206,19 @@ const BookView = ({openView,setPageTitle}) => {
         be.saveSelections({bookId,selections:JSON.stringify(newSelections, null, 4)}).then(({status,msg}) => {
             if (status !== 'ok') {
                 alert(`Error saving selections: ${msg}`)
+            } else {
+                setState(prev=>prev.set(s.MODAL_ACTIVE, false))
+                onDone()
+            }
+        })
+    }
+
+    function saveRepeatGroups({newRepeatGroups, onDone}) {
+        setState(prev=>prev.set(s.MODAL_ACTIVE, true))
+        be.saveRepeatGroups({bookId,repeatGroups:JSON.stringify(newRepeatGroups, null, 4)}).then(({status,msg}) => {
+            console.log('status', status)
+            if (status !== 'ok') {
+                alert(`Error saving repeatGroups: ${msg}`)
             } else {
                 setState(prev=>prev.set(s.MODAL_ACTIVE, false))
                 onDone()
@@ -444,6 +479,24 @@ const BookView = ({openView,setPageTitle}) => {
                             .set(s.SELECTIONS, newSelections)
                             .set(s.FOCUSED_SELECTION_ID, newSelection.id)
                     })
+                )
+            }
+        })
+    }
+
+    function addNewRepeatGroup({tree}) {
+        const repeatGroup = createRepeatGroup({tree})
+        const currRepeatGroups = state[s.REPEAT_GROUPS][rg.COLLECTIONS] ?? []
+        const newRepeatGroups = {
+            [rg.COLLECTIONS]: [...currRepeatGroups, repeatGroup],
+            [rg.SELECTED_COLLECTION_IDX]: currRepeatGroups.length
+        }
+        saveRepeatGroups({
+            newRepeatGroups,
+            onDone: () => {
+                setState(prev => prev
+                        .set(s.REPEAT_GROUPS, newRepeatGroups)
+                        .set(s.VIEW_MODE, vm.REPEAT)
                 )
             }
         })
@@ -781,6 +834,44 @@ const BookView = ({openView,setPageTitle}) => {
         return newTree
     }
 
+    function extractContentFromTree({tree}) {
+        if (tree.selection?.isMarkup) {
+            return tree.children?.flatMap(ch => extractContentFromTree({tree:ch}))
+        } else {
+            return [tree]
+        }
+    }
+
+    function createRepeatGroup({tree}) {
+        const nodesWithContent = extractContentFromTree({tree})
+        const cards = []
+        let lastSelection
+        for (const node of nodesWithContent) {
+            const currSelection = node.selection
+            if (lastSelection && (lastSelection.title.startsWith(currSelection.title) || currSelection.title.startsWith(lastSelection.title))) {
+                cards.last()[rg.COLLECTION_CARD_SELECTION_IDS].push(currSelection.id)
+            } else {
+                cards.push({
+                    [rg.COLLECTION_CARD_SELECTION_IDS]:[currSelection.id],
+                    [rg.COLLECTION_CARD_PATH]:node.path,
+                })
+            }
+            lastSelection = currSelection
+        }
+        return {
+            [rg.COLLECTION_NAME]:tree.path.map(p=>tree.pathElems[p]).join(' / '),
+            [rg.COLLECTION_PATH_ELEMS]:tree.pathElems,
+            [rg.COLLECTION_SELECTED_CARD_IDX]:randomInt(0,cards.length-1),
+            [rg.COLLECTION_COUNTS]:ints(0,cards.length-1).map(i=>0),
+            [rg.COLLECTION_OPENED_SELECTION_IDS]:[],
+            [rg.COLLECTION_CARDS]: cards,
+        }
+    }
+
+    function renderPath({pathElems,path}) {
+        return RE.Breadcrumbs({},path.map(id => RE.span({key:id}, pathElems[id])))
+    }
+
     function findMatchedTags({selection,tagsToFind}) {
         const tags = selection.tags??[]
         const matchedTags = []
@@ -810,15 +901,25 @@ const BookView = ({openView,setPageTitle}) => {
             }
         }
         let roots = [{id:ROOT_NODE_ID,selection:{title:state[s.BOOK].title, isMarkup:true}, children:[]}]
+        const pathElems = {[roots[0].id]:roots[0].selection.title}
+        roots[0].pathElems = pathElems
+        roots[0].path = []
         for (let selection of selections) {
             const level = Math.min(roots.length, getLevel(selection))
-            const newNode = {id:selection.id,selection,children:[]}
+            const newNode = {
+                id:selection.id,
+                selection,
+                children:[],
+                pathElems,
+                path: roots.map(n=>n.id)
+            }
             if (hasNoValue(level) || !selection.isMarkup) {
                 roots.last().children.push(newNode)
             } else {
                 roots[level-1].children.push(newNode)
                 roots = roots.slice(0,level)
                 roots.push(newNode)
+                pathElems[newNode.id] = newNode.selection.title
             }
             if (searchRegex && selection.title) {
                 const matchedAreas = findMatchedAreas({str:selection.title, regex:searchRegex})
@@ -1011,7 +1112,7 @@ const BookView = ({openView,setPageTitle}) => {
                     RE.span(
                         {
                             style: {marginLeft: '10px'},
-                            className: 'focus-this-node',
+                            className: 'red-and-bold-on-hover',
                             onClick: e => {
                                 e.stopPropagation();
                                 (hasValue(node?.id))?focusNode({id: node.id}):null
@@ -1022,14 +1123,25 @@ const BookView = ({openView,setPageTitle}) => {
                     RE.span(
                         {
                             style: {marginLeft: '10px'},
-                            className: 'navigate-to-page',
+                            className: 'red-and-bold-on-hover',
+                            onClick: e => {
+                                e.stopPropagation();
+                                addNewRepeatGroup({tree:node})
+                            }
+                        },
+                        (node.selection?.isMarkup)?REPEAT_SYMBOL:''
+                    ),
+                    RE.span(
+                        {
+                            style: {marginLeft: '10px'},
+                            className: 'read-and-bold-on-hover',
                             onClick: e => {
                                 e.stopPropagation();
                                 (node.selection?.id)?navigateToSelectionFromTree({selection: node.selection}):null
                             }
                         },
                         (hasValue(node.selection?.id))?NAVIGATE_TO_PAGE_SYMBOL:''
-                    )
+                    ),
                 ),
                 expandedNodeRenderer: node => (node.selection?.isMarkup??false) || !node.selection
                     ? undefined
@@ -1043,11 +1155,17 @@ const BookView = ({openView,setPageTitle}) => {
         )
     }
 
+    function renderRepeatGroups() {
+        return 'repeat groups'
+    }
+
     if (!ready) {
         return "Loading..."
     } else if (state[s.VIEW_MODE] === vm.BOOK) {
         return renderBookView()
-    } else {
+    } else if (state[s.VIEW_MODE] === vm.TREE) {
         return renderTree()
+    } else {
+        return renderRepeatGroups()
     }
 }

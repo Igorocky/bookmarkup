@@ -1,12 +1,14 @@
 import {getEnvironmentName} from './config'
-import {getBook, saveSelections, listAvailableBooks, getSelections} from './data'
+import {getBook, saveSelections, saveRepeatGroups, listAvailableBooks, getSelections, getRepeatGroups} from './data'
 
 const rpcMethods = {
     getEnvironmentName,
     getBook,
     saveSelections,
+    saveRepeatGroups,
     listAvailableBooks,
-    getSelections
+    getSelections,
+    getRepeatGroups,
 }
 
 export {rpcMethods}

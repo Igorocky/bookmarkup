@@ -3,12 +3,7 @@
     cursor: pointer;
 }
 
-.navigate-to-page:hover {
-    color: red;
-    font-weight: bold;
-}
-
-.focus-this-node:hover {
+.red-and-bold-on-hover:hover {
     color: red;
     font-weight: bold;
 }
