@@ -29,10 +29,10 @@ function RepeatGroups({
 
     const currGroupIdx = repeatGroups[rg.SELECTED_COLLECTION_IDX]
     const currGroup = repeatGroups[rg.COLLECTIONS][currGroupIdx]
-    const currGroupName = currGroup[rg.COLLECTION_NAME]
-    const currPathElems = currGroup[rg.COLLECTION_PATH_ELEMS]
-    const currCardIdx = currGroup[rg.COLLECTION_SELECTED_CARD_IDX]
-    const currCard = currGroup[rg.COLLECTION_CARDS][currCardIdx]
+    const currGroupName = currGroup?.[rg.COLLECTION_NAME]
+    const currPathElems = currGroup?.[rg.COLLECTION_PATH_ELEMS]
+    const currCardIdx = currGroup?.[rg.COLLECTION_SELECTED_CARD_IDX]
+    const currCard = currGroup?.[rg.COLLECTION_CARDS][currCardIdx]
 
     function selectAnotherGroup({newIdx}) {
         const newRepeatGroups = {

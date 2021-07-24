@@ -717,7 +717,7 @@ const BookView = ({openView,setPageTitle}) => {
             RE.Button({onClick: () => setState(prev=>prev.set(s.VIEW_MODE, vm.TREE)), style:{backgroundColor:state[s.VIEW_MODE] === vm.TREE?'rgb(150,150,255)':undefined}},
                 RE.Icon({}, 'format_list_bulleted')
             ),
-            state[s.REPEAT_GROUPS][rg.COLLECTIONS].length ? RE.Button({
+            state[s.REPEAT_GROUPS][rg.COLLECTIONS]?.length ? RE.Button({
                     onClick: () => setState(prev=>prev.set(s.VIEW_MODE, vm.REPEAT)), style:{backgroundColor:state[s.VIEW_MODE] === vm.REPEAT?'rgb(150,150,255)':undefined}},
                 RE.Icon({}, 'help_outline')
             ) : null
