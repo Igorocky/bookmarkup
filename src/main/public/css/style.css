@@ -3,6 +3,10 @@
     cursor: pointer;
 }
 
+.selection-title:hover {
+    background-color: yellow;
+}
+
 .red-and-bold-on-hover:hover {
     color: red;
     font-weight: bold;

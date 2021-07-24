@@ -64,7 +64,6 @@ const BookView = ({openView,setPageTitle}) => {
         COLLECTION_SELECTED_CARD_IDX: 'COLLECTION_SELECTED_CARD_IDX',
         COLLECTION_COUNTS: 'COLLECTION_COUNTS',
         COLLECTION_CARDS: 'COLLECTION_CARDS',
-        COLLECTION_OPENED_SELECTION_IDS: 'COLLECTION_OPENED_SELECTION_IDS',
 
         COLLECTION_CARD_PATH: 'COLLECTION_CARD_PATH',
         COLLECTION_CARD_SELECTION_IDS: 'COLLECTION_CARD_SELECTION_IDS',
@@ -174,7 +173,7 @@ const BookView = ({openView,setPageTitle}) => {
             [s.SCROLL_SPEED]: getParam(s.SCROLL_SPEED, ss.SPEED_1),
             [s.FOCUSED_SELECTION_ID]: getParam(s.FOCUSED_SELECTION_ID, null),
             [s.SELECTIONS]: getParam(s.SELECTIONS, null),
-            [s.VIEW_MODE]: getParam(s.VIEW_MODE, vm.TREE),
+            [s.VIEW_MODE]: getParam(s.VIEW_MODE, vm.BOOK),
             [s.EXPANDED_NODE_IDS]: getParam(s.EXPANDED_NODE_IDS, []),
             [s.SEARCH_TEXT]: '',
             [s.SEARCH_TAGS]: [],
@@ -216,12 +215,11 @@ const BookView = ({openView,setPageTitle}) => {
     function saveRepeatGroups({newRepeatGroups, onDone}) {
         setState(prev=>prev.set(s.MODAL_ACTIVE, true))
         be.saveRepeatGroups({bookId,repeatGroups:JSON.stringify(newRepeatGroups, null, 4)}).then(({status,msg}) => {
-            console.log('status', status)
             if (status !== 'ok') {
                 alert(`Error saving repeatGroups: ${msg}`)
             } else {
                 setState(prev=>prev.set(s.MODAL_ACTIVE, false))
-                onDone()
+                onDone?.()
             }
         })
     }
@@ -715,7 +713,11 @@ const BookView = ({openView,setPageTitle}) => {
             ),
             RE.Button({onClick: () => setState(prev=>prev.set(s.VIEW_MODE, vm.TREE)), style:{backgroundColor:state[s.VIEW_MODE] === vm.TREE?'rgb(150,150,255)':undefined}},
                 RE.Icon({}, 'format_list_bulleted')
-            )
+            ),
+            state[s.REPEAT_GROUPS][rg.COLLECTIONS].length ? RE.Button({
+                    onClick: () => setState(prev=>prev.set(s.VIEW_MODE, vm.REPEAT)), style:{backgroundColor:state[s.VIEW_MODE] === vm.REPEAT?'rgb(150,150,255)':undefined}},
+                RE.Icon({}, 'help_outline')
+            ) : null
         )
     }
 
@@ -863,13 +865,8 @@ const BookView = ({openView,setPageTitle}) => {
             [rg.COLLECTION_PATH_ELEMS]:tree.pathElems,
             [rg.COLLECTION_SELECTED_CARD_IDX]:randomInt(0,cards.length-1),
             [rg.COLLECTION_COUNTS]:ints(0,cards.length-1).map(i=>0),
-            [rg.COLLECTION_OPENED_SELECTION_IDS]:[],
             [rg.COLLECTION_CARDS]: cards,
         }
-    }
-
-    function renderPath({pathElems,path}) {
-        return RE.Breadcrumbs({},path.map(id => RE.span({key:id}, pathElems[id])))
     }
 
     function findMatchedTags({selection,tagsToFind}) {
@@ -903,7 +900,7 @@ const BookView = ({openView,setPageTitle}) => {
         let roots = [{id:ROOT_NODE_ID,selection:{title:state[s.BOOK].title, isMarkup:true}, children:[]}]
         const pathElems = {[roots[0].id]:roots[0].selection.title}
         roots[0].pathElems = pathElems
-        roots[0].path = []
+        roots[0].path = roots.map(n=>n.id)
         for (let selection of selections) {
             const level = Math.min(roots.length, getLevel(selection))
             const newNode = {
@@ -911,7 +908,6 @@ const BookView = ({openView,setPageTitle}) => {
                 selection,
                 children:[],
                 pathElems,
-                path: roots.map(n=>n.id)
             }
             if (hasNoValue(level) || !selection.isMarkup) {
                 roots.last().children.push(newNode)
@@ -921,6 +917,7 @@ const BookView = ({openView,setPageTitle}) => {
                 roots.push(newNode)
                 pathElems[newNode.id] = newNode.selection.title
             }
+            newNode.path = roots.map(n=>n.id)
             if (searchRegex && selection.title) {
                 const matchedAreas = findMatchedAreas({str:selection.title, regex:searchRegex})
                 if (matchedAreas) {
@@ -1134,7 +1131,7 @@ const BookView = ({openView,setPageTitle}) => {
                     RE.span(
                         {
                             style: {marginLeft: '10px'},
-                            className: 'read-and-bold-on-hover',
+                            className: 'red-and-bold-on-hover',
                             onClick: e => {
                                 e.stopPropagation();
                                 (node.selection?.id)?navigateToSelectionFromTree({selection: node.selection}):null
@@ -1156,7 +1153,27 @@ const BookView = ({openView,setPageTitle}) => {
     }
 
     function renderRepeatGroups() {
-        return 'repeat groups'
+        return re(RepeatGroups, {
+            repeatGroups: state[s.REPEAT_GROUPS],
+            renderViewModeSelector,
+            saveRepeatGroups: ({newRepeatGroups, onDone}) => saveRepeatGroups({
+                newRepeatGroups,
+                onDone: () => {
+                    setState(prev => prev
+                        .set(s.REPEAT_GROUPS, newRepeatGroups)
+                    )
+                    if (!newRepeatGroups[rg.COLLECTIONS].length) {
+                        setState(prev => prev
+                            .set(s.VIEW_MODE, vm.TREE)
+                        )
+                    }
+                    onDone?.()
+                }
+            }),
+            getSelectionById: id => state.getSelectionById(id),
+            renderSingleSelection,
+            navigateToSelectionById: id => navigateToSelectionFromTree({selection:state.getSelectionById(id)})
+        })
     }
 
     if (!ready) {

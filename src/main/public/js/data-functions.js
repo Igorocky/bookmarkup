@@ -118,7 +118,7 @@ Array.prototype.rest = function() {
 }
 
 Array.prototype.inc = function(idx) {
-    return modifyAtIdx(arr, idx, i => i+1)
+    return this.modifyAtIdx(idx, i => i+1)
 }
 
 Array.prototype.modifyAtIdx = function(idx, modifier) {
