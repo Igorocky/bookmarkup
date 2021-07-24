@@ -1,9 +1,22 @@
 'use strict';
 
-const TagSelector = ({allKnownTags,selectedTags,onTagRemoved,onTagSelected,renderTextField = true}) => {
+const TagSelector = ({allKnownTags,selectedTags,onTagRemoved,onTagSelected,renderTextField = true, tagsLabel}) => {
     const [editedTag, setEditedTag] = useState('')
 
-    return RE.Fragment({},
+    function renderTags() {
+        return allKnownTags.map(tag => RE.Chip({
+            key:tag,
+            variant:'outlined',
+            color:selectedTags.includes(tag)?'primary':undefined,
+            size:'small',
+            onClick: !selectedTags.includes(tag) ? () => onTagSelected(tag) : undefined,
+            onDelete: selectedTags.includes(tag) ? () => onTagRemoved(tag) : undefined,
+            label: tag,
+            style: {marginRight:'5px',marginLeft:'10px', marginTop:hasValue(tagsLabel)?'0px':'15px'}
+        }))
+    }
+
+    return RE.Paper({style:{padding:hasValue(tagsLabel)?'3px':'0px'}},
         renderTextField?RE.TextField(
             {
                 variant: 'outlined', label: 'Tag',
@@ -26,15 +39,7 @@ const TagSelector = ({allKnownTags,selectedTags,onTagRemoved,onTagSelected,rende
                 value: editedTag
             }
         ):null,
-        allKnownTags.map(tag => RE.Chip({
-            key:tag,
-            variant:'outlined',
-            color:selectedTags.includes(tag)?'primary':undefined,
-            size:'small',
-            onClick: !selectedTags.includes(tag) ? () => onTagSelected(tag) : undefined,
-            onDelete: selectedTags.includes(tag) ? () => onTagRemoved(tag) : undefined,
-            label: tag,
-            style: {marginRight:'5px',marginLeft:'10px', marginTop:'15px'}
-        }))
+        hasValue(tagsLabel)?tagsLabel:'',
+        renderTags()
     )
 }

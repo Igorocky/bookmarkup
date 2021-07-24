@@ -37,6 +37,7 @@ const BookView = ({openView,setPageTitle}) => {
         FOCUSED_NODE_ID: 'FOCUSED_NODE_ID',
         SEARCH_TEXT: 'SEARCH_TEXT',
         SEARCH_TAGS: 'SEARCH_TAGS',
+        SEARCH_TAGS_EXCLUDE: 'SEARCH_TAGS_EXCLUDE',
         REPEAT_GROUPS: 'REPEAT_GROUPS',
     }
 
@@ -129,6 +130,7 @@ const BookView = ({openView,setPageTitle}) => {
             })
         }
     })
+    const isSearchMode = state[s.SEARCH_TEXT].trim().length > 0 || state[s.SEARCH_TAGS].length > 0 || state[s.SEARCH_TAGS_EXCLUDE].length > 0
 
     useEffect(() => {
         Promise.all([
@@ -177,6 +179,7 @@ const BookView = ({openView,setPageTitle}) => {
             [s.EXPANDED_NODE_IDS]: getParam(s.EXPANDED_NODE_IDS, []),
             [s.SEARCH_TEXT]: '',
             [s.SEARCH_TAGS]: [],
+            [s.SEARCH_TAGS_EXCLUDE]: [],
             getFocusedSelection() {
                 return this[s.SELECTIONS][this.getIndexOfFocusedSelection()]
             },
@@ -860,8 +863,12 @@ const BookView = ({openView,setPageTitle}) => {
             }
             lastSelection = currSelection
         }
+        let collectionName = tree.path.map(p=>tree.pathElems[p]).join(' / ')
+        if (isSearchMode) {
+            collectionName += ` [${state[s.SEARCH_TEXT]}/${state[s.SEARCH_TAGS].sortBy(t=>t).join(',')}/${state[s.SEARCH_TAGS_EXCLUDE].sortBy(t=>t).join(',')}]`
+        }
         return {
-            [rg.COLLECTION_NAME]:tree.path.map(p=>tree.pathElems[p]).join(' / '),
+            [rg.COLLECTION_NAME]: collectionName,
             [rg.COLLECTION_PATH_ELEMS]:tree.pathElems,
             [rg.COLLECTION_SELECTED_CARD_IDX]:randomInt(0,cards.length-1),
             [rg.COLLECTION_COUNTS]:ints(0,cards.length-1).map(i=>0),
@@ -884,7 +891,7 @@ const BookView = ({openView,setPageTitle}) => {
         return node.matchedAreas || node.matchedTags
     }
 
-    function createTree({selections,searchRegex,searchTags}) {
+    function createTree({selections,searchRegex,searchTags,searchTagsExclude}) {
         function getLevel(selection) {
             if (selection.isMarkup) {
                 const split1 = selection.title?.split(' ')
@@ -930,6 +937,13 @@ const BookView = ({openView,setPageTitle}) => {
                     newNode.matchedTags = matchedTags
                 }
             }
+            if (searchTagsExclude?.length && selection.tags?.length) {
+                const matchedTags = findMatchedTags({selection, tagsToFind:searchTagsExclude})
+                if (matchedTags) {
+                    newNode.matchedAreas = undefined
+                    newNode.matchedTags = undefined
+                }
+            }
         }
         const tree = (searchRegex || searchTags)?removeNotMatchedNodes({tree:roots[0]}):roots[0]
         return tree
@@ -969,6 +983,7 @@ const BookView = ({openView,setPageTitle}) => {
         setState(prev=>prev
             .set(s.SEARCH_TEXT,'')
             .set(s.SEARCH_TAGS,[])
+            .set(s.SEARCH_TAGS_EXCLUDE,[])
         )
         collapseAllButFocused()
     }
@@ -1034,6 +1049,7 @@ const BookView = ({openView,setPageTitle}) => {
             ),
             re(TagSelector,{
                 renderTextField:false,
+                tagsLabel: 'Include: ',
                 allKnownTags:getAllUsedTags(),
                 selectedTags:state[s.SEARCH_TAGS],
                 onTagRemoved: tag => setState(prev=>prev.set(s.SEARCH_TAGS,state[s.SEARCH_TAGS].filter(t => t!==tag))),
@@ -1041,24 +1057,38 @@ const BookView = ({openView,setPageTitle}) => {
                     setState(prev=>prev.set(s.SEARCH_TAGS,[...state[s.SEARCH_TAGS], tag]))
                     expandAll()
                 },
+            }),
+            re(TagSelector,{
+                renderTextField:false,
+                tagsLabel: 'Exclude: ',
+                allKnownTags:getAllUsedTags(),
+                selectedTags:state[s.SEARCH_TAGS_EXCLUDE],
+                onTagRemoved: tag => setState(prev=>prev.set(s.SEARCH_TAGS_EXCLUDE,state[s.SEARCH_TAGS_EXCLUDE].filter(t => t!==tag))),
+                onTagSelected: tag => {
+                    setState(prev=>prev.set(s.SEARCH_TAGS_EXCLUDE,[...state[s.SEARCH_TAGS_EXCLUDE], tag]))
+                    expandAll()
+                },
             })
         ]
     }
 
-    function renderMatchedTags({key, matchedTags}) {
-        return matchedTags.sortBy(a=>a).map(tag => RE.span(
-            {
-                key:`matched-tag-${key}-${tag}`,
-                style:{
-                    backgroundColor: 'DarkOliveGreen',
-                    color:'white',
-                    marginRight:'5px',
-                    borderRadius:'12px',
-                    padding:'3px'
-                }
-            },
-            tag
-        ))
+    function renderMatchedTags({key, tags, matchedTags}) {
+        if (isSearchMode) {
+            return tags.sortBy(a=>a).map(tag => RE.span(
+                {
+                    key:`matched-tag-${key}-${tag}`,
+                    style:{
+                        backgroundColor: matchedTags.includes(tag)?'DarkOliveGreen':undefined,
+                        color:matchedTags.includes(tag)?'white':undefined,
+                        marginRight:'5px',
+                        borderRadius:'12px',
+                        padding:'3px',
+                        border:'1px solid black'
+                    }
+                },
+                tag
+            ))
+        }
     }
 
     function renderMatchedAreas({key, matchedAreas}) {
@@ -1092,6 +1122,7 @@ const BookView = ({openView,setPageTitle}) => {
             ? new RegExp(createSearchRegex({searchString:searchText}),'i')
             : null
         const searchTags = state[s.SEARCH_TAGS]
+        const searchTagsExclude = state[s.SEARCH_TAGS_EXCLUDE]
         return RE.Container.col.top.left({},{style:{marginBottom: '15px'}},
             RE.Container.row.left.center({},{style:{marginRight: '15px'}},
                 renderViewModeSelector(),
@@ -1101,10 +1132,11 @@ const BookView = ({openView,setPageTitle}) => {
                 tree: createTree({
                     selections:state[s.SELECTIONS],
                     searchRegex,
-                    searchTags: searchTags.length?searchTags:null
+                    searchTags: searchTags.length?searchTags:null,
+                    searchTagsExclude: searchTagsExclude.length?searchTagsExclude:null,
                 }),
                 collapsedNodeRenderer: node => RE.Container.row.left.center({},{},
-                    renderMatchedTags({key:node.id,matchedTags:node.matchedTags??[]}),
+                    renderMatchedTags({key:node.id,tags:node.selection.tags??[],matchedTags:node.matchedTags??[]}),
                     node.matchedAreas?renderMatchedAreas({key:node.id,matchedAreas:node.matchedAreas}):node.selection?.title,
                     RE.span(
                         {
