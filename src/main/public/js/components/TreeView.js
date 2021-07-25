@@ -3,7 +3,15 @@
 const COLLAPSED_SIGN = String.fromCharCode(8226)
 const EXPANDED_SIGN = String.fromCharCode(9711)
 
-function TreeView({tree, collapsedNodeRenderer, expandedNodeRenderer, showBullet, isExpanded, expandCollapse, focusedNodeId, setFocusedNodeId}) {
+function TreeView({tree, collapsedNodeRenderer, expandedNodeRenderer, showBullet, isExpanded, expandCollapse, focusedNodeId, setFocusedNodeId,
+                      onDownArrowPressed, onUpArrowPressed, onRightArrowPressed, onLeftArrowPressed, onRightArrowCtrlPressed}) {
+
+    const tableRef = useRef(null)
+
+    useEffect(() => {
+        tableRef.current.addEventListener('keyup', onKeyUp)
+        return () => tableRef.current?tableRef.current.removeEventListener('keyup', onKeyUp):null
+    }, [onDownArrowPressed, onUpArrowPressed, onRightArrowPressed, onLeftArrowPressed, onRightArrowCtrlPressed])
 
     function renderExpandedNodeContent({node}) {
         const expandedContent = expandedNodeRenderer(node);
@@ -29,9 +37,9 @@ function TreeView({tree, collapsedNodeRenderer, expandedNodeRenderer, showBullet
         )
     }
 
-    function renderNode({node}) {
+    function renderNode({node, tabIndex}) {
         const expanded = isExpanded(node.id)
-        return RE.table({style:{borderCollapse: 'collapse'}},
+        return RE.table({tabIndex, ref:hasValue(tabIndex)?tableRef:undefined,style:{borderCollapse: 'collapse'}},
             RE.tbody({},
                 RE.tr(
                     {
@@ -55,5 +63,24 @@ function TreeView({tree, collapsedNodeRenderer, expandedNodeRenderer, showBullet
         )
     }
 
-    return renderNode({node:tree})
+    function onKeyUp(event) {
+        const {keyCode, ctrlKey} = event
+        if (ctrlKey) {
+            if (keyCode === RIGHT_ARROW_KEY_CODE) {
+                onRightArrowCtrlPressed?.()
+            }
+        } else {
+            if (keyCode === DOWN_ARROW_KEY_CODE) {
+                onDownArrowPressed?.()
+            } else if (keyCode === UP_ARROW_KEY_CODE) {
+                onUpArrowPressed?.()
+            } else if (keyCode === RIGHT_ARROW_KEY_CODE) {
+                onRightArrowPressed?.()
+            } else if (keyCode === LEFT_ARROW_KEY_CODE) {
+                onLeftArrowPressed?.()
+            }
+        }
+    }
+
+    return renderNode({node:tree, tabIndex:0})
 }

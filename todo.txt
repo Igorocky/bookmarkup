@@ -1,4 +1,4 @@
-* tree navigation with keys.
+
 
 * page dragging by mouse.
 * add a search over the selections list.

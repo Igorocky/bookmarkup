@@ -906,8 +906,10 @@ const BookView = ({openView,setPageTitle}) => {
         }
         let roots = [{id:ROOT_NODE_ID,selection:{title:state[s.BOOK].title, isMarkup:true}, children:[]}]
         const pathElems = {[roots[0].id]:roots[0].selection.title}
+        const nodesById = {[roots[0].id]:roots[0]}
         roots[0].pathElems = pathElems
         roots[0].path = roots.map(n=>n.id)
+        roots[0].nodesById = nodesById
         for (let selection of selections) {
             const level = Math.min(roots.length, getLevel(selection))
             const newNode = {
@@ -915,11 +917,15 @@ const BookView = ({openView,setPageTitle}) => {
                 selection,
                 children:[],
                 pathElems,
+                nodesById
             }
+            nodesById[newNode.id] = newNode
             if (hasNoValue(level) || !selection.isMarkup) {
                 roots.last().children.push(newNode)
+                newNode.parent = roots.last()
             } else {
                 roots[level-1].children.push(newNode)
+                newNode.parent = roots[level-1]
                 roots = roots.slice(0,level)
                 roots.push(newNode)
                 pathElems[newNode.id] = newNode.selection.title
@@ -1123,18 +1129,19 @@ const BookView = ({openView,setPageTitle}) => {
             : null
         const searchTags = state[s.SEARCH_TAGS]
         const searchTagsExclude = state[s.SEARCH_TAGS_EXCLUDE]
+        const tree = createTree({
+            selections:state[s.SELECTIONS],
+            searchRegex,
+            searchTags: searchTags.length?searchTags:null,
+            searchTagsExclude: searchTagsExclude.length?searchTagsExclude:null,
+        })
         return RE.Container.col.top.left({},{style:{marginBottom: '15px'}},
             RE.Container.row.left.center({},{style:{marginRight: '15px'}},
                 renderViewModeSelector(),
                 renderSearchControls(),
             ),
             re(TreeView,{
-                tree: createTree({
-                    selections:state[s.SELECTIONS],
-                    searchRegex,
-                    searchTags: searchTags.length?searchTags:null,
-                    searchTagsExclude: searchTagsExclude.length?searchTagsExclude:null,
-                }),
+                tree,
                 collapsedNodeRenderer: node => RE.Container.row.left.center({},{},
                     renderMatchedTags({key:node.id,tags:node.selection.tags??[],matchedTags:node.matchedTags??[]}),
                     node.matchedAreas?renderMatchedAreas({key:node.id,matchedAreas:node.matchedAreas}):node.selection?.title,
@@ -1179,7 +1186,12 @@ const BookView = ({openView,setPageTitle}) => {
                 isExpanded,
                 expandCollapse,
                 focusedNodeId:state[s.FOCUSED_NODE_ID],
-                setFocusedNodeId:id=>focusNode({id})
+                setFocusedNodeId:id=>focusNode({id}),
+                onDownArrowPressed: () => focusAnotherNode({tree, currNodeToAnotherNode:getNextNode}),
+                onUpArrowPressed: () => focusAnotherNode({tree, currNodeToAnotherNode:getPrevNode}),
+                onRightArrowPressed: () => rightArrowPressed({tree}),
+                onLeftArrowPressed: () => leftArrowPressed({tree}),
+                onRightArrowCtrlPressed: () => onRightArrowCtrlPressed({tree}),
             })
         )
     }
@@ -1206,6 +1218,98 @@ const BookView = ({openView,setPageTitle}) => {
             renderSingleSelection,
             navigateToSelectionById: id => navigateToSelectionFromTree({selection:state.getSelectionById(id)})
         })
+    }
+
+    function traversTree({tree, visitor}) {
+        const {children, stop} = visitor(tree)
+        if (stop===true) {
+            return false
+        } else {
+            if (children && children.length) {
+                for (let i = 0; i < children.length; i++) {
+                    if (!traversTree({tree:children[i], visitor})) {
+                        return false
+                    }
+                }
+            }
+            return true
+        }
+    }
+
+    function getSurroundingNodes({tree,currNode}) {
+        let result = []
+        traversTree({tree, visitor: node => {
+            if (result.length == 0) {
+                if (node === currNode) {
+                    result = [currNode, currNode]
+                } else {
+                    result = [node]
+                }
+            } else if (result.length == 1) {
+                if (node === currNode) {
+                    result.push(currNode)
+                } else {
+                    result = [node]
+                }
+            } else if (result.length == 2) {
+                result.push(node)
+                return {stop:true}
+            }
+            return ({children:state[s.EXPANDED_NODE_IDS].includes(node.id)?node.children:null})
+        }})
+        if (result.length == 2) {
+            result.push(currNode)
+        }
+        return result
+    }
+
+    function getNextNode({tree, currNode}) {
+        const [prev, _, next] = getSurroundingNodes({tree, currNode})
+        return next
+    }
+
+    function getPrevNode({tree, currNode}) {
+        const [prev, _, next] = getSurroundingNodes({tree, currNode})
+        return prev
+    }
+
+    function withCurrentNode({tree,nodeAcceptor}) {
+        if (hasValue(state[s.FOCUSED_NODE_ID])) {
+            nodeAcceptor(tree.nodesById[state[s.FOCUSED_NODE_ID]])
+        }
+    }
+
+    function focusAnotherNode({tree, currNodeToAnotherNode}) {
+        withCurrentNode({tree, nodeAcceptor: currNode => {
+            const anotherNode = currNodeToAnotherNode({tree, currNode})
+            if (anotherNode !== currNode) {
+                focusNode({id:anotherNode.id})
+            }
+        }})
+    }
+
+    function rightArrowPressed({tree}) {
+        withCurrentNode({tree, nodeAcceptor: currNode => {
+            if (!state[s.EXPANDED_NODE_IDS].includes(currNode.id)) {
+                expandCollapse(currNode.id)
+            }
+        }})
+    }
+
+    function leftArrowPressed({tree}) {
+        withCurrentNode({tree, nodeAcceptor: currNode => {
+            if (state[s.EXPANDED_NODE_IDS].includes(currNode.id)) {
+                expandCollapse(currNode.id)
+            } else if (currNode.parent) {
+                focusNode({id:currNode.parent.id})
+            }
+        }})
+    }
+
+    function onRightArrowCtrlPressed({tree}) {
+        withCurrentNode({tree, nodeAcceptor: currNode => {
+            navigateToSelectionFromTree({selection:currNode.selection})
+        }})
     }
 
     if (!ready) {

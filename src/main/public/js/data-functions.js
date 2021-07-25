@@ -1,7 +1,9 @@
 'use strict';
 
 const DOWN_ARROW_KEY_CODE = 40
+const RIGHT_ARROW_KEY_CODE = 39
 const UP_ARROW_KEY_CODE = 38
+const LEFT_ARROW_KEY_CODE = 37
 const SPACE_KEY_CODE = 32
 const PAGE_DOWN_KEY_CODE = 34
 const PAGE_UP_KEY_CODE = 33
