@@ -1192,6 +1192,10 @@ const BookView = ({openView,setPageTitle}) => {
                 onRightArrowPressed: () => rightArrowPressed({tree}),
                 onLeftArrowPressed: () => leftArrowPressed({tree}),
                 onRightArrowCtrlPressed: () => onRightArrowCtrlPressed({tree}),
+                onPageUpPressed: () => window.scrollBy(0,-100),
+                onPageDownPressed: () => window.scrollBy(0,100),
+                onPageUpShiftPressed: () => window.scrollBy(0,-400),
+                onPageDownShiftPressed: () => window.scrollBy(0,400),
             })
         )
     }

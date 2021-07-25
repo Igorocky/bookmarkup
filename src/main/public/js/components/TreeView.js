@@ -4,13 +4,18 @@ const COLLAPSED_SIGN = String.fromCharCode(8226)
 const EXPANDED_SIGN = String.fromCharCode(9711)
 
 function TreeView({tree, collapsedNodeRenderer, expandedNodeRenderer, showBullet, isExpanded, expandCollapse, focusedNodeId, setFocusedNodeId,
-                      onDownArrowPressed, onUpArrowPressed, onRightArrowPressed, onLeftArrowPressed, onRightArrowCtrlPressed}) {
+                      onDownArrowPressed, onUpArrowPressed, onRightArrowPressed, onLeftArrowPressed, onRightArrowCtrlPressed,
+                      onPageDownPressed, onPageUpPressed, onPageDownShiftPressed, onPageUpShiftPressed}) {
 
     const tableRef = useRef(null)
 
     useEffect(() => {
-        tableRef.current.addEventListener('keyup', onKeyUp)
-        return () => tableRef.current?tableRef.current.removeEventListener('keyup', onKeyUp):null
+        tableRef.current.addEventListener('keyup', onKey)
+        tableRef.current.addEventListener('keydown', onKey)
+        return () => {
+            tableRef.current?tableRef.current.removeEventListener('keyup', onKey):null
+            tableRef.current?tableRef.current.removeEventListener('keydown', onKey):null
+        }
     }, [onDownArrowPressed, onUpArrowPressed, onRightArrowPressed, onLeftArrowPressed, onRightArrowCtrlPressed])
 
     function renderExpandedNodeContent({node}) {
@@ -63,21 +68,39 @@ function TreeView({tree, collapsedNodeRenderer, expandedNodeRenderer, showBullet
         )
     }
 
-    function onKeyUp(event) {
-        const {keyCode, ctrlKey} = event
+    function onKey(event) {
+        function runHandler({event,handler}) {
+            if (handler) {
+                event.preventDefault()
+                if (event.type === 'keyup') {
+                    handler()
+                }
+            }
+        }
+        const {keyCode, ctrlKey, shiftKey} = event
         if (ctrlKey) {
             if (keyCode === RIGHT_ARROW_KEY_CODE) {
-                onRightArrowCtrlPressed?.()
+                runHandler({event, handler:onRightArrowCtrlPressed})
+            }
+        } else if (shiftKey) {
+            if (keyCode === PAGE_UP_KEY_CODE) {
+                runHandler({event, handler:onPageUpShiftPressed})
+            } else if (keyCode === PAGE_DOWN_KEY_CODE) {
+                runHandler({event, handler:onPageDownShiftPressed})
             }
         } else {
             if (keyCode === DOWN_ARROW_KEY_CODE) {
-                onDownArrowPressed?.()
+                runHandler({event, handler:onDownArrowPressed})
             } else if (keyCode === UP_ARROW_KEY_CODE) {
-                onUpArrowPressed?.()
+                runHandler({event, handler:onUpArrowPressed})
             } else if (keyCode === RIGHT_ARROW_KEY_CODE) {
-                onRightArrowPressed?.()
+                runHandler({event, handler:onRightArrowPressed})
             } else if (keyCode === LEFT_ARROW_KEY_CODE) {
-                onLeftArrowPressed?.()
+                runHandler({event, handler:onLeftArrowPressed})
+            } else if (keyCode === PAGE_UP_KEY_CODE) {
+                runHandler({event, handler:onPageUpPressed})
+            } else if (keyCode === PAGE_DOWN_KEY_CODE) {
+                runHandler({event, handler:onPageDownPressed})
             }
         }
     }
