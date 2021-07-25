@@ -1138,7 +1138,7 @@ const BookView = ({openView,setPageTitle}) => {
                 collapsedNodeRenderer: node => RE.Container.row.left.center({},{},
                     renderMatchedTags({key:node.id,tags:node.selection.tags??[],matchedTags:node.matchedTags??[]}),
                     node.matchedAreas?renderMatchedAreas({key:node.id,matchedAreas:node.matchedAreas}):node.selection?.title,
-                    RE.span(
+                    (node.selection?.id)?RE.span(
                         {
                             style: {marginLeft: '10px'},
                             className: 'red-and-bold-on-hover',
@@ -1147,9 +1147,9 @@ const BookView = ({openView,setPageTitle}) => {
                                 (hasValue(node?.id))?focusNode({id: node.id}):null
                             }
                         },
-                        (node.selection?.id)?TARGET_SYMBOL:''
-                    ),
-                    RE.span(
+                        TARGET_SYMBOL
+                    ):null,
+                    (node.selection?.isMarkup)?RE.span(
                         {
                             style: {marginLeft: '10px'},
                             className: 'red-and-bold-on-hover',
@@ -1158,9 +1158,9 @@ const BookView = ({openView,setPageTitle}) => {
                                 addNewRepeatGroup({tree:node})
                             }
                         },
-                        (node.selection?.isMarkup)?REPEAT_SYMBOL:''
-                    ),
-                    RE.span(
+                        REPEAT_SYMBOL
+                    ):null,
+                    (hasValue(node.selection?.id))?RE.span(
                         {
                             style: {marginLeft: '10px'},
                             className: 'red-and-bold-on-hover',
@@ -1169,8 +1169,8 @@ const BookView = ({openView,setPageTitle}) => {
                                 (node.selection?.id)?navigateToSelectionFromTree({selection: node.selection}):null
                             }
                         },
-                        (hasValue(node.selection?.id))?NAVIGATE_TO_PAGE_SYMBOL:''
-                    ),
+                        NAVIGATE_TO_PAGE_SYMBOL
+                    ):null,
                 ),
                 expandedNodeRenderer: node => (node.selection?.isMarkup??false) || !node.selection
                     ? undefined
