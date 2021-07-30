@@ -459,12 +459,13 @@ const BookView = ({openView,setPageTitle}) => {
         })
     }
 
-    function addNewSelection({title = '', tags = []}) {
+    function addNewSelection({title = '', isMarkup = false, tags = []}) {
         const newSelection = {
             id: (state[s.SELECTIONS].map(e => e.id).max()??0) + 1,
             title,
-            parts: [],
-            tags
+            isMarkup,
+            tags,
+            parts: []
         }
         const newSelections = [
             newSelection,
@@ -554,6 +555,7 @@ const BookView = ({openView,setPageTitle}) => {
     function duplicateSelection({selection}) {
         addNewSelection({
             title: selection.title,
+            isMarkup: selection.isMarkup,
             tags: [...(selection.tags??[])]
         })
     }
@@ -911,6 +913,10 @@ const BookView = ({openView,setPageTitle}) => {
         roots[0].path = roots.map(n=>n.id)
         roots[0].nodesById = nodesById
         for (let selection of selections) {
+            if (selection.isMarkup && hasValue(roots.last()?.selection?.title) && selection.title.startsWith(roots.last()?.selection?.title)) {
+                roots = roots.slice(0,roots.length-1)
+                continue
+            }
             const level = Math.min(roots.length, getLevel(selection))
             const newNode = {
                 id:selection.id,
