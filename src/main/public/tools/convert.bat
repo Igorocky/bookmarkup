@@ -1,1 +1,1 @@
-java -jar ../pdfbox-app-2.0.23.jar PDFToImage -imageType png -outputPrefix Zorich1- -dpi 300 -endPage 2000 -color gray ../Zorich1.pdf
+java -jar ../pdfbox-app-2.0.24.jar PDFToImage -imageType png -outputPrefix Zorich1- -dpi 300 -endPage 2000 -color gray ../Zorich1.pdf
