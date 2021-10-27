@@ -1,7 +1,7 @@
 import java.io.File
 import javax.imageio.ImageIO
 
-val dirWithImages = File("C:\\igye\\books\\pdf-2-png")
+val dirWithImages = File("C:\\igye\\books\\markups\\prod\\intro-to-algs-3rd-ed")
 val fileToSaveTo = File("C:\\igye\\books\\markups\\prod\\intro-to-algs-3rd-ed.json")
 
 val pageNumberRegex = "^.+-(\\d+)\\.png$".toRegex()
