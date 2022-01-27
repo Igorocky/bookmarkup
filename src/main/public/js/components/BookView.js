@@ -284,7 +284,7 @@ const BookView = ({openView,setPageTitle}) => {
         }
 
         function getColorForSelection(selection) {
-            return state[s.FOCUSED_SELECTION_ID] === selection.id ? 'cyan' : selection.isMarkup ? 'magenta' : 'yellow'
+            return state[s.FOCUSED_SELECTION_ID] === selection.id ? CURRENT_ELEM_COLOR_2 : selection.isMarkup ? 'magenta' : 'yellow'
         }
 
         const svgContent = []
@@ -585,7 +585,7 @@ const BookView = ({openView,setPageTitle}) => {
                         key:getSelectionHtmlId(selection),
                         id:getSelectionHtmlId(selection),
                         style:{
-                            backgroundColor:state[s.FOCUSED_SELECTION_ID] == selection.id ? 'cyan' : undefined,
+                            backgroundColor:state[s.FOCUSED_SELECTION_ID] == selection.id ? CURRENT_ELEM_COLOR : undefined,
                             padding:'5px',
                             cursor: 'pointer',
                             marginBottom:'2px'

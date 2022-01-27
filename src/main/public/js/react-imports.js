@@ -22,6 +22,8 @@ const {
     useLocation
 } = window["ReactRouterDOM"]
 const MuiColors = MaterialUI.colors
+const CURRENT_ELEM_COLOR = '#ccffcc';
+const CURRENT_ELEM_COLOR_2 = '#00ff00';
 
 const DIRECTION = {row: "row", column: "column",}
 const JUSTIFY = {flexStart: "flex-start", center: "center", flexEnd: "flex-end", spaceBetween: "space-between", spaceAround: "space-around",}

@@ -50,7 +50,7 @@ function TreeView({tree, collapsedNodeRenderer, expandedNodeRenderer, showBullet
                     {
                         key:node.id,
                         className:'tree-node',
-                        style:{backgroundColor:focusedNodeId === node.id ? 'yellow' : undefined},
+                        style:{backgroundColor:focusedNodeId === node.id ? CURRENT_ELEM_COLOR : undefined},
                         onClick: () => {
                             setFocusedNodeId(node.id)
                             expandCollapse(node.id)
