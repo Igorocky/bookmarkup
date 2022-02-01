@@ -1,8 +1,18 @@
+import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
 
-val dirWithImages = File("C:\\igye\\books\\markups\\prod\\intro-to-algs-3rd-ed")
-val fileToSaveTo = File("C:\\igye\\books\\markups\\prod\\intro-to-algs-3rd-ed.json")
+val dirWithImages = File("C:\\igye\\books\\tmp")
+val fileToSaveTo = File("C:\\igye\\books\\tmp\\basic-trig-identities.json")
+val width: Int = 2550
+val height: Int = 3299
+val cropLeft: Int = (width - 2166)
+val cropRight: Int = (width - 2294)
+val cropTop: Int = (height - 2860)
+val cropBottom: Int = (height - 2984)
+
+val dirWithCroppedImages = File(dirWithImages, "cropped")
+dirWithCroppedImages.mkdirs()
 
 val pageNumberRegex = "^.+-(\\d+)\\.png$".toRegex()
 data class PageDto(val fileName: String, val width: Int, val height: Int, val pageNum: Int) {
@@ -13,13 +23,17 @@ data class PageDto(val fileName: String, val width: Int, val height: Int, val pa
 
 val jsonContent = dirWithImages.listFiles().asSequence()
     .filter { it.name.endsWith(".png") }
-    .map {
-        val image = ImageIO.read(it)
+    .map {origImgFile ->
+        println("processing - ${origImgFile.name}")
+        val image: BufferedImage = ImageIO.read(origImgFile)
+        val croppedImage = image.getSubimage(cropLeft, cropTop, width - cropLeft - cropRight, height - cropTop - cropBottom)
+        ImageIO.write(croppedImage, "png", File(dirWithCroppedImages, origImgFile.name))
+
         PageDto(
-            fileName = it.name,
+            fileName = origImgFile.name,
             width = image.width,
             height = image.height,
-            pageNum = pageNumberRegex.matchEntire(it.name)!!.groupValues[1].toInt()
+            pageNum = pageNumberRegex.matchEntire(origImgFile.name)!!.groupValues[1].toInt()
         )
     }
     .sortedBy { it.pageNum }
