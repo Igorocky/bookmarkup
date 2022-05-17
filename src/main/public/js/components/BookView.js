@@ -695,19 +695,22 @@ const BookView = ({openView,setPageTitle}) => {
         const scaleFactor = viewHeightPx/viewHeight
         const height = selectionBoundaries.height()*scaleFactor
         const width = selectionBoundaries.width()*scaleFactor
-        return RE.svg(
-            {
-                width,
-                height,
-                boundaries: selectionBoundaries,
-            },
-            ...svgContent,
-            renderFrame?createRect({
-                key:`singleSelection-frame`,
-                boundaries:selectionBoundaries,
-                opacity:0,
-                borderColor:'black'
-            }):null
+        return RE.Container.col.top.left({},{},
+            RE.div({style:{margin:'2px'}},renderReadonlyTags({tags:selection.tags??[]})),
+            RE.svg(
+                {
+                    width,
+                    height,
+                    boundaries: selectionBoundaries,
+                },
+                ...svgContent,
+                renderFrame?createRect({
+                    key:`singleSelection-frame`,
+                    boundaries:selectionBoundaries,
+                    opacity:0,
+                    borderColor:'black'
+                }):null
+            )
         )
     }
 
