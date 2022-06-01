@@ -34,17 +34,21 @@ const ViewSelector = ({}) => {
         document.title = `${environmentName == 'PROD' ? '' : '{' + environmentName + '} - '}${pageTitle}`
     }
 
+    function renderView({view, props}) {
+        return re(view.component, {
+            ...props,
+            ...(view.props?view.props:{}),
+            openView: url => setCurrentViewUrl(url),
+            setPageTitle: str => setPageTitle(str),
+        })
+    }
+
     function getViewRoutes() {
         return VIEWS.map(view => re(Route, {
             key: view.path,
             path: view.path,
             exact: true,
-            render: props => re(view.component, {
-                ...props,
-                ...(view.props?view.props:{}),
-                openView: url => setCurrentViewUrl(url),
-                setPageTitle: str => setPageTitle(str),
-            })
+            render: props => renderView({view, props})
         }))
     }
 
@@ -53,6 +57,11 @@ const ViewSelector = ({}) => {
     }
 
     if (currentViewUrl) {
+        if (currentViewUrl.indexOf('bookId') > 0) {
+            return renderView({view:VIEWS.find(v=>v.name==='BookView')})
+        } else {
+            return renderView({view:VIEWS.find(v=>v.name==='BookSelector')})
+        }
         return re(BrowserRouter, {},
             re(Switch, {}, getViewRoutes()),
             renderRedirectElem(currentViewUrl)
@@ -60,6 +69,7 @@ const ViewSelector = ({}) => {
     } else {
         const newViewUrl = window.location.pathname + window.location.search
         setCurrentViewUrl(newViewUrl)
+        console.log('newViewUrl', newViewUrl)
         return renderRedirectElem(newViewUrl)
     }
 }

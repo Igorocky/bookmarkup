@@ -26,11 +26,11 @@ function callBe(methodName, params) {
 }
 
 const be = {
-    getEnvironmentName: () => callBe('getEnvironmentName',{}),
+    getEnvironmentName: () => Promise.resolve('PROD'),
     getBook: (bookId) => callBe('getBook',{bookId}),
     getSelections: (bookId) => callBe('getSelections',{bookId}),
     getRepeatGroups: (bookId) => callBe('getRepeatGroups',{bookId}),
-    listAvailableBooks: () => callBe('listAvailableBooks',{}),
+    listAvailableBooks: () => Promise.resolve('PROD')callBe('listAvailableBooks',{}),
     saveSelections: ({bookId,selections}) => callBe('saveSelections',{bookId,selections}),
     saveRepeatGroups: ({bookId,repeatGroups}) => callBe('saveRepeatGroups',{bookId,repeatGroups}),
 }
